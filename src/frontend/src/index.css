@@ -1,0 +1,67 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    /* Light mode - SaaS admin palette */
+    --background: 0.963 0.006 252;
+    --foreground: 0.175 0.015 252;
+    --card: 1 0 0;
+    --card-foreground: 0.175 0.015 252;
+    --popover: 1 0 0;
+    --popover-foreground: 0.175 0.015 252;
+    --primary: 0.541 0.213 262.9;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.922 0.006 252;
+    --secondary-foreground: 0.175 0.015 252;
+    --muted: 0.945 0.006 252;
+    --muted-foreground: 0.513 0.018 252;
+    --accent: 0.93 0.015 262.9;
+    --accent-foreground: 0.541 0.213 262.9;
+    --destructive: 0.627 0.218 22.0;
+    --destructive-foreground: 1 0 0;
+    --success: 0.723 0.191 142.5;
+    --success-foreground: 1 0 0;
+    --warning: 0.769 0.188 70.08;
+    --warning-foreground: 0.175 0.015 252;
+    --border: 0.922 0.006 252;
+    --input: 0.922 0.006 252;
+    --ring: 0.541 0.213 262.9;
+    --chart-1: 0.541 0.213 262.9;
+    --chart-2: 0.723 0.191 142.5;
+    --chart-3: 0.627 0.218 22.0;
+    --chart-4: 0.769 0.188 70.08;
+    --chart-5: 0.627 0.265 303.9;
+    /* Sidebar: dark navy */
+    --sidebar: 0.149 0.035 252;
+    --sidebar-foreground: 0.922 0.006 252;
+    --sidebar-primary: 0.541 0.213 262.9;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.22 0.04 252;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.22 0.04 252;
+    --sidebar-ring: 0.541 0.213 262.9;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Noto Sans Bengali", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Noto Sans Bengali", sans-serif;
+  }
+}
