@@ -16,79 +16,76 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertCircle,
   DollarSign,
+  Eye,
+  EyeOff,
   FileDown,
   Loader2,
-  Plus,
+  Pencil,
   TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  sampleCustomers,
-  samplePackages,
-  samplePayments,
-} from "../data/sampleData";
+import { VILLAGES } from "../data/sampleData";
 import { useCompanySettings } from "../hooks/useCompanySettings";
-import { useCustomers, usePackages, usePayments } from "../hooks/useQueries";
+import { useLocalCustomers } from "../hooks/useLocalCustomers";
 import type { ExtendedCustomer } from "../types/extended";
 import { printDocument } from "../utils/printDocument";
+
+function completedPeriods(connectionDate: bigint): number {
+  const connectedMs = Number(connectionDate / 1000000n);
+  const elapsed = Date.now() - connectedMs;
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.floor(elapsed / thirtyDaysMs));
+}
 
 function formatDate(time: bigint): string {
   const ms = Number(time / 1000000n);
   return new Date(ms).toLocaleDateString("bn-BD");
 }
 
-/** Returns true if the customer's connection date is at least 30 days ago */
-function hasCompletedOneMonth(connectionDate: bigint): boolean {
-  const connectedMs = Number(connectionDate / 1000000n);
-  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-  return Date.now() - connectedMs >= thirtyDaysMs;
+function toDateInputValue(time: bigint): string {
+  const ms = Number(time / 1000000n);
+  return new Date(ms).toISOString().split("T")[0];
+}
+
+interface EditFormData {
+  username: string;
+  password: string;
+  phone: string;
+  carnivalId: string;
+  cidNumber: string;
+  village: string;
+  monthlyFee: string;
+  connectionDate: string;
+  connectionFeeCash: string;
+  connectionFeeDue: string;
+  commissionPercent: string;
 }
 
 export default function Finance() {
-  const { data: payments, isLoading } = usePayments();
-  const { data: customers } = useCustomers();
-  const { data: packages } = usePackages();
+  const { customers: allCustomers, updateCustomer } = useLocalCustomers();
   const { settings } = useCompanySettings();
 
-  const allPayments =
-    payments && payments.length > 0 ? payments : samplePayments;
-
-  const rawCustomers =
-    customers && customers.length > 0
-      ? (customers as unknown as ExtendedCustomer[])
-      : sampleCustomers;
-  const allCustomers: ExtendedCustomer[] = rawCustomers.map((c) => ({
-    ...c,
-    username: c.username ?? "",
-    carnivalId: c.carnivalId ?? "",
-    cidNumber: c.cidNumber ?? "",
-    connectionFeeCash: c.connectionFeeCash ?? 0,
-    connectionFeeDue: c.connectionFeeDue ?? 0,
-    commissionPercent: c.commissionPercent ?? 30,
-  }));
-
-  const allPackages =
-    packages && packages.length > 0 ? packages : samplePackages;
-
-  const pkg = (id: bigint) => allPackages.find((p) => p.id === id);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    customerId: "",
-    amount: "",
-    method: "বিকাশ",
-    note: "",
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] =
+    useState<ExtendedCustomer | null>(null);
+  const [editForm, setEditForm] = useState<EditFormData>({
+    username: "",
+    password: "",
+    phone: "",
+    carnivalId: "",
+    cidNumber: "",
+    village: "",
+    monthlyFee: "600",
+    connectionDate: "",
+    connectionFeeCash: "",
+    connectionFeeDue: "0",
+    commissionPercent: "30",
   });
-
-  const totalCollected = allPayments
-    .filter((p) => p.month === 3n && p.year === 2026n)
-    .reduce((sum, p) => sum + p.amount, 0);
+  const [saving, setSaving] = useState(false);
+  const [showFormPassword, setShowFormPassword] = useState(false);
 
   const totalConnectionFeeDue = allCustomers.reduce(
     (sum, c) => sum + c.connectionFeeDue,
@@ -98,52 +95,77 @@ export default function Finance() {
     (sum, c) => sum + c.monthlyFee,
     0,
   );
-  const _paymentRate =
-    expectedMonthly > 0
-      ? Math.round((totalCollected / expectedMonthly) * 100)
-      : 0;
 
-  // Commission: only for customers who have completed at least one month
-  const totalCommission = allCustomers
-    .filter((c) => hasCompletedOneMonth(c.connectionDate))
-    .reduce(
-      (sum, c) => sum + Math.round((c.monthlyFee * c.commissionPercent) / 100),
-      0,
+  const totalCommission = allCustomers.reduce((sum, c) => {
+    const periods = completedPeriods(c.connectionDate);
+    return (
+      sum +
+      periods * Math.round((c.monthlyFee * (c.commissionPercent ?? 30)) / 100)
     );
+  }, 0);
 
-  async function handleSave() {
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    setModalOpen(false);
-    toast.success("পেমেন্ট রেকর্ড করা হয়েছে");
-    setForm({ customerId: "", amount: "", method: "বিকাশ", note: "" });
+  function openEdit(c: ExtendedCustomer) {
+    setEditingCustomer(c);
+    setEditForm({
+      username: c.username,
+      password: c.password,
+      phone: c.phone,
+      carnivalId: c.carnivalId,
+      cidNumber: c.cidNumber,
+      village: c.village,
+      monthlyFee: c.monthlyFee.toString(),
+      connectionDate: toDateInputValue(c.connectionDate),
+      connectionFeeCash:
+        c.connectionFeeCash === 0 ? "" : c.connectionFeeCash.toString(),
+      connectionFeeDue: c.connectionFeeDue.toString(),
+      commissionPercent: (c.commissionPercent ?? 30).toString(),
+    });
+    setShowFormPassword(false);
+    setEditOpen(true);
   }
 
-  const customerName = (id: bigint) =>
-    allCustomers.find((c) => c.id === id)?.name ?? "অজানা";
-
-  const sortedPayments = [...allPayments].sort((a, b) =>
-    Number(b.date - a.date),
-  );
+  async function handleEditSave() {
+    if (!editingCustomer) return;
+    setSaving(true);
+    updateCustomer({
+      ...editingCustomer,
+      username: editForm.username,
+      name: editForm.username,
+      password: editForm.password,
+      phone: editForm.phone,
+      carnivalId: editForm.carnivalId,
+      cidNumber: editForm.cidNumber,
+      village: editForm.village,
+      area: editForm.village,
+      address: editForm.village,
+      monthlyFee: Number.parseInt(editForm.monthlyFee) || 600,
+      connectionDate:
+        BigInt(new Date(editForm.connectionDate).getTime()) * 1000000n,
+      connectionFeeCash: Number.parseInt(editForm.connectionFeeCash) || 0,
+      connectionFeeDue: Number.parseInt(editForm.connectionFeeDue) || 0,
+      commissionPercent: Number.parseInt(editForm.commissionPercent) || 30,
+    });
+    setSaving(false);
+    setEditOpen(false);
+    toast.success("গ্রাহকের তথ্য আপডেট করা হয়েছে");
+  }
 
   function handleExportFinancePDF() {
     const rows = allCustomers
       .map((c, i) => {
-        const p = pkg(c.packageId);
-        const completed = hasCompletedOneMonth(c.connectionDate);
-        const commission = completed
-          ? Math.round((c.monthlyFee * c.commissionPercent) / 100)
-          : 0;
+        const periods = completedPeriods(c.connectionDate);
+        const commission =
+          periods *
+          Math.round((c.monthlyFee * (c.commissionPercent ?? 30)) / 100);
         return `
       <tr>
         <td>${i + 1}</td>
         <td>${c.username}</td>
-        <td>৳${c.connectionFeeCash.toLocaleString()}</td>
+        <td>${c.connectionFeeCash > 0 ? `৳${c.connectionFeeCash.toLocaleString()}` : "—"}</td>
         <td>${c.connectionFeeDue > 0 ? `৳${c.connectionFeeDue.toLocaleString()}` : "০"}</td>
-        <td>${p ? p.speed : "—"}</td>
+        <td>${c.monthlyFee} টাকা/মাস</td>
         <td>৳${c.monthlyFee.toLocaleString()}</td>
-        <td>${completed ? `৳${commission.toLocaleString()} (${c.commissionPercent}%)` : "—"}</td>
+        <td>${periods > 0 ? `৳${commission.toLocaleString()} (${c.commissionPercent}% × ${periods} মাস)` : "—"}</td>
       </tr>`;
       })
       .join("");
@@ -175,57 +197,19 @@ export default function Finance() {
     printDocument("গ্রাহক আর্থিক তথ্য রিপোর্ট", bodyHTML, settings);
   }
 
-  function handleExportPaymentsPDF() {
-    const rows = sortedPayments
-      .map(
-        (p) => `
-      <tr>
-        <td>#${p.id.toString()}</td>
-        <td>${customerName(p.customerId)}</td>
-        <td>৳${p.amount.toLocaleString()}</td>
-        <td>${formatDate(p.date)}</td>
-        <td>${p.paymentMethod}</td>
-        <td>${p.month.toString()}/${p.year.toString()}</td>
-      </tr>`,
-      )
-      .join("");
-    const bodyHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>গ্রাহক</th>
-            <th>পরিমাণ</th>
-            <th>তারিখ</th>
-            <th>পদ্ধতি</th>
-            <th>মাস/বছর</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-        <tfoot>
-          <tr><td colspan="6">মোট পেমেন্ট: ${sortedPayments.length}টি</td></tr>
-        </tfoot>
-      </table>`;
-    printDocument("পেমেন্ট ইতিহাস রিপোর্ট", bodyHTML, settings);
-  }
-
   return (
     <div className="space-y-6" data-ocid="finance.page">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card
           className="shadow-card border-border"
-          data-ocid="finance.collected.card"
+          data-ocid="finance.customers.card"
         >
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  মাসিক সংগ্রহ (মার্চ)
-                </p>
-                <p className="text-3xl font-bold">
-                  ৳{totalCollected.toLocaleString()}
-                </p>
+                <p className="text-xs text-muted-foreground mb-2">মোট গ্রাহক</p>
+                <p className="text-3xl font-bold">{allCustomers.length} জন</p>
               </div>
               <div className="p-2.5 rounded-xl bg-primary/10">
                 <DollarSign className="w-5 h-5 text-primary" />
@@ -235,20 +219,20 @@ export default function Finance() {
         </Card>
         <Card
           className="shadow-card border-border"
-          data-ocid="finance.due.card"
+          data-ocid="finance.monthly.card"
         >
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-muted-foreground mb-2">
-                  সংযোগ ফি বকেয়া
+                  মাসিক বিল (মোট)
                 </p>
-                <p className="text-3xl font-bold text-destructive">
-                  ৳{totalConnectionFeeDue.toLocaleString()}
+                <p className="text-3xl font-bold">
+                  ৳{expectedMonthly.toLocaleString()}
                 </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-destructive/10">
-                <AlertCircle className="w-5 h-5 text-destructive" />
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <DollarSign className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -260,7 +244,9 @@ export default function Finance() {
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-muted-foreground mb-2">মোট কমিশন</p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  মোট কমিশন (সঞ্চিত)
+                </p>
                 <p className="text-3xl font-bold text-success">
                   ৳{totalCommission.toLocaleString()}
                 </p>
@@ -273,7 +259,7 @@ export default function Finance() {
         </Card>
       </div>
 
-      {/* গ্রাহক আর্থিক তথ্য */}
+      {/* Customer Finance Table */}
       <Card
         className="shadow-card border-border"
         data-ocid="finance.customer_finance.card"
@@ -297,70 +283,69 @@ export default function Finance() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
                     ক্রমিক
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                    ইউজার নেম/ইউজার আইডি
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                    ইউজার নেম/আইডি
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                    সংযোগ ফি নগদ
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                    সংযোগের তারিখ
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                    সংযোগ ফি বকেয়া
-                  </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
                     প্যাকেজ
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
                     মাসিক বিল
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                    সম্পূর্ণ মাস
+                  </th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
                     কমিশন
+                  </th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                    এডিট
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {allCustomers.map((c, i) => {
-                  const p = pkg(c.packageId);
-                  const completed = hasCompletedOneMonth(c.connectionDate);
-                  const commission = completed
-                    ? Math.round((c.monthlyFee * c.commissionPercent) / 100)
-                    : 0;
+                  const periods = completedPeriods(c.connectionDate);
+                  const commissionPerMonth = Math.round(
+                    (c.monthlyFee * (c.commissionPercent ?? 30)) / 100,
+                  );
+                  const totalCust = periods * commissionPerMonth;
                   return (
                     <tr
                       key={c.id.toString()}
                       className="border-b border-border last:border-0 hover:bg-muted/20"
                       data-ocid={`finance.customer.item.${i + 1}`}
                     >
-                      <td className="py-3 px-4 text-muted-foreground">
+                      <td className="py-2.5 px-3 text-muted-foreground">
                         {i + 1}
                       </td>
-                      <td className="py-3 px-4 font-medium">{c.username}</td>
-                      <td className="py-3 px-4 text-success font-medium">
-                        ৳{c.connectionFeeCash.toLocaleString()}
+                      <td className="py-2.5 px-3 font-medium">{c.username}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                        {formatDate(c.connectionDate)}
                       </td>
-                      <td className="py-3 px-4">
-                        {c.connectionFeeDue > 0 ? (
-                          <span className="text-destructive font-medium">
-                            ৳{c.connectionFeeDue.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">০</span>
-                        )}
+                      <td className="py-2.5 px-3 text-muted-foreground whitespace-nowrap">
+                        {c.monthlyFee} টাকা/মাস
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                        {p ? p.speed : "—"}
-                      </td>
-                      <td className="py-3 px-4 font-medium">
+                      <td className="py-2.5 px-3 font-medium">
                         ৳{c.monthlyFee.toLocaleString()}
                       </td>
-                      <td className="py-3 px-4">
-                        {completed ? (
+                      <td className="py-2.5 px-3 text-center">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                          {periods} মাস
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {periods > 0 ? (
                           <span className="text-success font-medium">
-                            ৳{commission.toLocaleString()}
+                            ৳{totalCust.toLocaleString()}
                             <span className="text-xs text-muted-foreground ml-1">
-                              ({c.commissionPercent}%)
+                              ({c.commissionPercent ?? 30}%×{periods})
                             </span>
                           </span>
                         ) : (
@@ -369,216 +354,218 @@ export default function Finance() {
                           </span>
                         )}
                       </td>
+                      <td className="py-2.5 px-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => openEdit(c)}
+                          data-ocid={`finance.edit_button.${i + 1}`}
+                        >
+                          <Pencil size={13} />
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-border bg-muted/40">
-                  <td className="py-3 px-4 font-bold" colSpan={2}>
+                  <td className="py-3 px-3 font-bold" colSpan={4}>
                     মোট
                   </td>
-                  <td className="py-3 px-4 font-bold text-success">
-                    ৳
-                    {allCustomers
-                      .reduce((s, c) => s + c.connectionFeeCash, 0)
-                      .toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-destructive">
-                    ৳{totalConnectionFeeDue.toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4" />
-                  <td className="py-3 px-4 font-bold">
+                  <td className="py-3 px-3 font-bold">
                     ৳{expectedMonthly.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 font-bold text-success">
+                  <td className="py-3 px-3" />
+                  <td className="py-3 px-3 font-bold text-success">
                     ৳{totalCommission.toLocaleString()}
                   </td>
+                  <td />
                 </tr>
               </tfoot>
             </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment History */}
-      <Card
-        className="shadow-card border-border"
-        data-ocid="finance.payment_history.card"
-      >
-        <CardHeader className="pb-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-semibold">
-            পেমেন্ট ইতিহাস
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPaymentsPDF}
-              data-ocid="finance.export_payments_pdf.button"
-            >
-              <FileDown size={14} className="mr-1.5" />
-              PDF এক্সপোর্ট
-            </Button>
-            <Button
-              className="bg-primary text-white"
-              size="sm"
-              onClick={() => setModalOpen(true)}
-              data-ocid="finance.add_payment.button"
-            >
-              <Plus size={15} className="mr-1.5" />
-              পেমেন্ট যোগ
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3" data-ocid="finance.loading_state">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      #
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      গ্রাহক
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      পরিমাণ
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      তারিখ
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      পদ্ধতি
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground">
-                      মাস/বছর
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedPayments.map((p, i) => (
-                    <tr
-                      key={p.id.toString()}
-                      className="border-b border-border last:border-0 hover:bg-muted/20"
-                      data-ocid={`finance.payment.item.${i + 1}`}
-                    >
-                      <td className="py-3 px-4 text-muted-foreground">
-                        #{p.id.toString()}
-                      </td>
-                      <td className="py-3 px-4 font-medium">
-                        {customerName(p.customerId)}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-success">
-                        ৳{p.amount.toLocaleString()}
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {formatDate(p.date)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {p.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {p.month.toString()}/{p.year.toString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sortedPayments.length === 0 && (
-                <p
-                  className="text-center text-muted-foreground py-12"
-                  data-ocid="finance.payment_history.empty_state"
-                >
-                  কোনো পেমেন্ট পাওয়া যায়নি
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Payment Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent data-ocid="finance.dialog">
-          <DialogHeader>
-            <DialogTitle>পেমেন্ট রেকর্ড করুন</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">গ্রাহক *</Label>
-              <Select
-                value={form.customerId}
-                onValueChange={(v) => setForm((p) => ({ ...p, customerId: v }))}
+            {allCustomers.length === 0 && (
+              <p
+                className="text-center text-muted-foreground py-12"
+                data-ocid="finance.empty_state"
               >
-                <SelectTrigger data-ocid="finance.customer.select">
-                  <SelectValue placeholder="গ্রাহক নির্বাচন করুন" />
+                কোনো গ্রাহক পাওয়া যায়নি
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          data-ocid="finance.edit_dialog"
+        >
+          <DialogHeader>
+            <DialogTitle>গ্রাহক তথ্য সম্পাদনা</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">ইউজার নেম / আইডি *</Label>
+              <Input
+                value={editForm.username}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, username: e.target.value }))
+                }
+                placeholder="user001"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">পাসওয়ার্ড</Label>
+              <div className="relative">
+                <Input
+                  type={showFormPassword ? "text" : "password"}
+                  value={editForm.password}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, password: e.target.value }))
+                  }
+                  placeholder="পাসওয়ার্ড"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowFormPassword(!showFormPassword)}
+                >
+                  {showFormPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">মোবাইল নম্বর *</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, phone: e.target.value }))
+                }
+                placeholder="০১৭..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">কার্নিভাল আইডি</Label>
+              <Input
+                value={editForm.carnivalId}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, carnivalId: e.target.value }))
+                }
+                placeholder="CRN-001"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">সিআইডি নম্বর</Label>
+              <Input
+                value={editForm.cidNumber}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, cidNumber: e.target.value }))
+                }
+                placeholder="277465"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">গ্রাম</Label>
+              <Select
+                value={editForm.village}
+                onValueChange={(v) =>
+                  setEditForm((p) => ({ ...p, village: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="গ্রাম নির্বাচন" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allCustomers.map((c) => (
-                    <SelectItem key={c.id.toString()} value={c.id.toString()}>
-                      {c.username}
+                  {VILLAGES.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {v}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">পরিমাণ (৳) *</Label>
+              <Label className="text-xs">সংযোগের তারিখ</Label>
               <Input
-                data-ocid="finance.amount.input"
-                value={form.amount}
+                type="date"
+                value={editForm.connectionDate}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, amount: e.target.value }))
+                  setEditForm((p) => ({ ...p, connectionDate: e.target.value }))
                 }
-                placeholder="৬০০"
-                type="number"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">পেমেন্ট পদ্ধতি</Label>
+              <Label className="text-xs">মাসিক বিল (৳)</Label>
+              <Input
+                type="number"
+                value={editForm.monthlyFee}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, monthlyFee: e.target.value }))
+                }
+                placeholder="৬০০"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">সংযোগ ফি নগদ (৳)</Label>
+              <Input
+                type="number"
+                value={editForm.connectionFeeCash}
+                onChange={(e) =>
+                  setEditForm((p) => ({
+                    ...p,
+                    connectionFeeCash: e.target.value,
+                  }))
+                }
+                placeholder="১০০০"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">সংযোগ ফি বকেয়া (৳)</Label>
+              <Input
+                type="number"
+                value={editForm.connectionFeeDue}
+                onChange={(e) =>
+                  setEditForm((p) => ({
+                    ...p,
+                    connectionFeeDue: e.target.value,
+                  }))
+                }
+                placeholder="০"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">কমিশন হার</Label>
               <Select
-                value={form.method}
-                onValueChange={(v) => setForm((p) => ({ ...p, method: v }))}
+                value={editForm.commissionPercent}
+                onValueChange={(v) =>
+                  setEditForm((p) => ({ ...p, commissionPercent: v }))
+                }
               >
-                <SelectTrigger data-ocid="finance.method.select">
-                  <SelectValue />
+                <SelectTrigger>
+                  <SelectValue placeholder="কমিশন নির্বাচন" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="বিকাশ">বিকাশ</SelectItem>
-                  <SelectItem value="নগদ">নগদ</SelectItem>
-                  <SelectItem value="রকেট">রকেট</SelectItem>
-                  <SelectItem value="ব্যাংক">ব্যাংক</SelectItem>
-                  <SelectItem value="ক্যাশ">ক্যাশ</SelectItem>
+                  <SelectItem value="30">৩০%</SelectItem>
+                  <SelectItem value="40">৪০%</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-              data-ocid="finance.cancel_button"
-            >
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
               বাতিল
             </Button>
             <Button
               className="bg-primary text-white"
-              onClick={handleSave}
+              onClick={handleEditSave}
               disabled={saving}
-              data-ocid="finance.submit_button"
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              সংরক্ষণ করুন
+              আপডেট করুন
             </Button>
           </DialogFooter>
         </DialogContent>

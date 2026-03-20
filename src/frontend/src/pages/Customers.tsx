@@ -34,9 +34,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { VILLAGES, sampleCustomers, samplePackages } from "../data/sampleData";
+import { ServiceStatus } from "../backend";
+import { VILLAGES } from "../data/sampleData";
+import { normalizeVillage } from "../data/villageNormalization";
 import { useCompanySettings } from "../hooks/useCompanySettings";
-import { useCustomers, usePackages } from "../hooks/useQueries";
+import { useLocalCustomers } from "../hooks/useLocalCustomers";
+import { usePackages } from "../hooks/useQueries";
 import type { ExtendedCustomer } from "../types/extended";
 import { printDocument } from "../utils/printDocument";
 
@@ -97,28 +100,48 @@ const emptyForm: CustomerFormData = {
   commissionPercent: "30",
 };
 
-const BULK_FORMAT_HINT = `প্রতিটি লাইনে একজন গ্রাহকের তথ্য দিন। কলামগুলো ট্যাব (Excel থেকে কপি) বা কমা দিয়ে আলাদা করুন:
+const BULK_FORMAT_HINT = `প্রতিটি লাইনে একজন গ্রাহকের তথ্য দিন। কলামগুলো পাইপ (|), ট্যাব (Excel থেকে কপি) বা কমা দিয়ে আলাদা করুন:
 
 ইউজার নেম | পাসওয়ার্ড | মোবাইল | কার্নিভাল আইডি | সিআইডি | গ্রাম | প্যাকেজ | মাসিক বিল | তারিখ (YYYY-MM-DD) | কমিশন%
 
-উদাহরণ:
-user001	1234	01711000001	CRN001	CID001	বালিগাঁও	10 Mbps	600	2024-01-15	30`;
+পাইপ ফরম্যাট উদাহরণ:
+Md Jalal Miah | ja4321 | 01311411152 | 1279832 | 277465 | Baligaw Islampara | 20 Mbps | 840 | 2026-03-08
+
+Excel/ট্যাব ফরম্যাট উদাহরণ:
+user001	1234	01711000001	CRN001	CID001	বালিগাঁও	10 Mbps	600	2024-01-15	30
+
+নোট: পাসওয়ার্ড বা কার্নিভাল আইডি না থাকলে — (ড্যাশ) লিখুন বা খালি রাখুন।`;
 
 function parseBulkText(text: string): BulkRow[] {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+    .filter((l) => l.length > 0)
+    // Skip header lines and separator lines
+    .filter(
+      (l) =>
+        !l.startsWith("---") &&
+        !l.startsWith("ইউজার নেম") &&
+        !l.match(/^[-\s|]+$/),
+    );
+
   return lines.map((line) => {
-    // support tab or comma separated
-    const cols = line.includes("\t") ? line.split("\t") : line.split(",");
-    const get = (i: number) => (cols[i] ?? "").trim();
+    // support pipe, tab or comma separated
+    let cols: string[];
+    if (line.includes("|")) {
+      cols = line.split("|").map((c) => c.trim().replace(/^—$|^-$/, ""));
+    } else if (line.includes("\t")) {
+      cols = line.split("\t").map((c) => c.trim().replace(/^—$|^-$/, ""));
+    } else {
+      cols = line.split(",").map((c) => c.trim().replace(/^—$|^-$/, ""));
+    }
+    const get = (i: number) => (cols[i] ?? "").replace(/^—$/, "").trim();
     const username = get(0);
     const password = get(1);
     const phone = get(2);
     const carnivalId = get(3);
     const cidNumber = get(4);
-    const village = get(5);
+    const village = normalizeVillage(get(5));
     const packageName = get(6);
     const monthlyFee = get(7);
     const connectionDate = get(8) || todayStr;
@@ -146,28 +169,19 @@ function parseBulkText(text: string): BulkRow[] {
 }
 
 export default function Customers() {
-  const { data: customers, isLoading } = useCustomers();
+  const {
+    customers: rawLocalCustomers,
+    addCustomers,
+    updateCustomer,
+    deleteCustomer,
+  } = useLocalCustomers();
   const { data: packages } = usePackages();
   const { settings } = useCompanySettings();
+  const isLoading = false;
 
-  const rawCustomers =
-    customers && customers.length > 0
-      ? (customers as unknown as ExtendedCustomer[])
-      : sampleCustomers;
-  const allCustomers: ExtendedCustomer[] = rawCustomers.map((c) => ({
-    ...c,
-    username: c.username ?? "",
-    password: c.password ?? "",
-    carnivalId: c.carnivalId ?? "",
-    cidNumber: c.cidNumber ?? "",
-    connectionFeeCash: c.connectionFeeCash ?? 0,
-    connectionFeeDue: c.connectionFeeDue ?? 0,
-    village: c.village ?? c.area ?? "",
-    commissionPercent: c.commissionPercent ?? 30,
-  }));
+  const allCustomers = rawLocalCustomers;
 
-  const allPackages =
-    packages && packages.length > 0 ? packages : samplePackages;
+  const allPackages = packages ?? [];
 
   const [search, setSearch] = useState("");
   const [selectedVillages, setSelectedVillages] = useState<Set<string>>(
@@ -236,7 +250,52 @@ export default function Customers() {
 
   async function handleSave() {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
+    if (editingCustomer) {
+      updateCustomer({
+        ...editingCustomer,
+        username: form.username,
+        name: form.username,
+        password: form.password,
+        phone: form.phone,
+        carnivalId: form.carnivalId,
+        cidNumber: form.cidNumber,
+        village: form.village,
+        area: form.village,
+        address: form.village,
+        packageId: BigInt(form.packageId),
+        monthlyFee: Number.parseInt(form.monthlyFee) || 600,
+        connectionDate:
+          BigInt(new Date(form.connectionDate).getTime()) * 1000000n,
+        connectionFeeCash: Number.parseInt(form.connectionFeeCash) || 0,
+        connectionFeeDue: Number.parseInt(form.connectionFeeDue) || 0,
+        commissionPercent: Number.parseInt(form.commissionPercent) || 30,
+      });
+    } else {
+      addCustomers([
+        {
+          id: 0n,
+          name: form.username,
+          username: form.username,
+          password: form.password,
+          phone: form.phone,
+          email: "",
+          carnivalId: form.carnivalId,
+          cidNumber: form.cidNumber,
+          village: form.village,
+          area: form.village,
+          address: form.village,
+          packageId: BigInt(form.packageId),
+          monthlyFee: Number.parseInt(form.monthlyFee) || 600,
+          dueAmount: 0,
+          status: ServiceStatus.active,
+          connectionDate:
+            BigInt(new Date(form.connectionDate).getTime()) * 1000000n,
+          connectionFeeCash: Number.parseInt(form.connectionFeeCash) || 0,
+          connectionFeeDue: Number.parseInt(form.connectionFeeDue) || 0,
+          commissionPercent: Number.parseInt(form.commissionPercent) || 30,
+        },
+      ]);
+    }
     setSaving(false);
     setModalOpen(false);
     toast.success(
@@ -245,6 +304,7 @@ export default function Customers() {
   }
 
   function handleDelete(c: ExtendedCustomer) {
+    deleteCustomer(c.id);
     toast.success(`${c.username} মুছে ফেলা হয়েছে`);
   }
 
@@ -266,7 +326,7 @@ export default function Customers() {
         <td>${c.carnivalId}</td>
         <td>${c.cidNumber}</td>
         <td>${c.phone}</td>
-        <td>${c.village}</td>
+        <td>${c.address || c.village}</td>
         <td>${pkg(c.packageId)?.name ?? ""}</td>
       </tr>`,
       )
@@ -315,8 +375,30 @@ export default function Customers() {
       return;
     }
     setBulkImporting(true);
-    // Simulate import delay
-    await new Promise((r) => setTimeout(r, 800 + validRows.length * 20));
+    const mapped: ExtendedCustomer[] = validRows.map((row) => ({
+      id: 0n,
+      name: row.username,
+      phone: row.phone,
+      email: "",
+      area: row.village,
+      address: row.village,
+      packageId: 1n,
+      monthlyFee: Number.parseInt(row.monthlyFee) || 600,
+      dueAmount: 0,
+      status: ServiceStatus.active,
+      connectionDate: row.connectionDate
+        ? BigInt(new Date(row.connectionDate).getTime()) * 1000000n
+        : BigInt(Date.now()) * 1000000n,
+      username: row.username,
+      password: row.password,
+      carnivalId: row.carnivalId,
+      cidNumber: row.cidNumber,
+      connectionFeeCash: 1000,
+      connectionFeeDue: 0,
+      village: row.village,
+      commissionPercent: Number.parseInt(row.commissionPercent) || 30,
+    }));
+    addCustomers(mapped);
     setBulkImporting(false);
     setBulkOpen(false);
     setBulkText("");
@@ -484,7 +566,7 @@ export default function Customers() {
                         {c.phone}
                       </td>
                       <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                        {c.village}
+                        {c.address || c.village}
                       </td>
                       <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
                         {pkg(c.packageId)?.name ?? "অজানা"}
@@ -831,6 +913,9 @@ export default function Customers() {
                           কার্নিভাল আইডি
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
+                          সিআইডি
+                        </th>
+                        <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
                           গ্রাম
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
@@ -867,6 +952,9 @@ export default function Customers() {
                           </td>
                           <td className="py-2 px-3 text-muted-foreground">
                             {row.carnivalId || "—"}
+                          </td>
+                          <td className="py-2 px-3 text-muted-foreground">
+                            {row.cidNumber || "—"}
                           </td>
                           <td className="py-2 px-3 text-muted-foreground">
                             {row.village || "—"}

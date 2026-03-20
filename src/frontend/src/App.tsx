@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
 import Layout from "./components/Layout";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
+import CallCenter from "./pages/CallCenter";
 import Customers from "./pages/Customers";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
+import IdCard from "./pages/IdCard";
 import LoginPage from "./pages/LoginPage";
 import Network from "./pages/Network";
 import NoticePage from "./pages/NoticePage";
@@ -17,7 +19,9 @@ type Page =
   | "finance"
   | "network"
   | "settings"
-  | "notice";
+  | "notice"
+  | "call"
+  | "idcard";
 
 interface AdminSession {
   type: "admin";
@@ -86,6 +90,10 @@ function AppContent() {
         return <NoticePage />;
       case "network":
         return <Network />;
+      case "call":
+        return <CallCenter />;
+      case "idcard":
+        return <IdCard />;
       case "settings":
         return <Settings isSuperAdmin={isSuperAdmin} />;
       default:

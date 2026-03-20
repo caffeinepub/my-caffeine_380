@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,13 +17,13 @@ import {
   FileDown,
   Megaphone,
   MessageCircle,
+  Phone,
   Send,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { sampleCustomers } from "../data/sampleData";
 import { useCompanySettings } from "../hooks/useCompanySettings";
-import { useCustomers } from "../hooks/useQueries";
+import { useLocalCustomers } from "../hooks/useLocalCustomers";
 import type { ExtendedCustomer } from "../types/extended";
 import { printDocument } from "../utils/printDocument";
 
@@ -33,6 +34,8 @@ const ISSUE_TYPES = [
   "নেটওয়ার্ক আপগ্রেড",
   "অন্যান্য",
 ];
+
+const VILLAGES = ["বালীগাঁও", "ফরিদপুর", "কাটাইয়া", "পশ্চিম বাজুকা", "পূর্ব বাজুকা"];
 
 function buildNoticeText(
   issueType: string,
@@ -61,14 +64,31 @@ function buildNoticeText(
   return lines.join("\n");
 }
 
+function normalizeVillage(v: string): string {
+  const val = v
+    .toLowerCase()
+    .replace(/[,\s]+/g, " ")
+    .trim();
+  if (/baligou|baligaw|baligaon|baligun|baliguon|বালী|বালিগ/.test(val))
+    return "বালীগাঁও";
+  if (/faridpur|foridpur|ফরিদ/.test(val)) return "ফরিদপুর";
+  if (/kathaiya|kataiya|kataia|katia|কাটাই/.test(val)) return "কাটাইয়া";
+  if (
+    /pocim|poschim|pashcim|pajgaw|bajgaw|pocimbaj|bajuka|bazuka|bazar|পশ্চিম/.test(
+      val,
+    ) &&
+    !/purbo|purbu|পূর্ব/.test(val)
+  )
+    return "পশ্চিম বাজুকা";
+  if (/purbo|purbu|পূর্ব/.test(val)) return "পূর্ব বাজুকা";
+  return v;
+}
+
 export default function NoticePage() {
-  const { data: customers } = useCustomers();
+  const { customers } = useLocalCustomers();
   const { settings } = useCompanySettings();
 
-  const rawCustomers =
-    customers && customers.length > 0
-      ? (customers as unknown as ExtendedCustomer[])
-      : sampleCustomers;
+  const rawCustomers = customers;
 
   const [issueType, setIssueType] = useState(ISSUE_TYPES[0]);
   const [area, setArea] = useState("");
@@ -77,6 +97,9 @@ export default function NoticePage() {
   const [notes, setNotes] = useState("");
   const [generated, setGenerated] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [selectedVillages, setSelectedVillages] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const orgName = settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট";
 
@@ -120,6 +143,50 @@ export default function NoticePage() {
     const url = `https://wa.me/88${cleaned}?text=${encodeURIComponent(noticeText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
+
+  function openIMO(mobile: string) {
+    const cleaned = mobile.replace(/[^0-9]/g, "");
+    // Copy message to clipboard and open IMO deep link
+    copyToClipboard(noticeText, `imo-${cleaned}`);
+    const url = `imo://chat?phone=88${cleaned}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.info("নোটিশ কপি হয়েছে — IMO-তে পেস্ট করুন");
+  }
+
+  function openSMS(mobile: string) {
+    const cleaned = mobile.replace(/[^0-9]/g, "");
+    const url = `sms:+88${cleaned}?body=${encodeURIComponent(noticeText)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function toggleVillage(v: string) {
+    setSelectedVillages((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+    );
+  }
+
+  const filteredCustomers = useMemo(() => {
+    let list = rawCustomers;
+    if (selectedVillages.length > 0) {
+      list = list.filter((c) => {
+        const cVillage = normalizeVillage(c.address || "");
+        return selectedVillages.some((v) => cVillage.includes(v));
+      });
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(
+        (c) =>
+          (c.username || c.name || "").toLowerCase().includes(q) ||
+          (c.phone || "")
+            .replace(/[^0-9]/g, "")
+            .includes(q.replace(/[^0-9]/g, "")) ||
+          (c.carnivalId || "").toLowerCase().includes(q) ||
+          (c.cidNumber || "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [rawCustomers, selectedVillages, searchQuery]);
 
   return (
     <div className="space-y-6" data-ocid="notice.page">
@@ -291,17 +358,61 @@ export default function NoticePage() {
           className="shadow-card border-border"
           data-ocid="notice.customer_list.card"
         >
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">
               গ্রাহকদের নোটিশ পাঠান
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              WhatsApp বাটনে ক্লিক করলে সেই নম্বরে নোটিশ সহ WhatsApp খুলবে। কপি বাটনে
-              ক্লিক করলে নোটিশ ক্লিপবোর্ডে কপি হবে।
-            </p>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="space-y-4">
+            {/* Village Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">
+                গ্রাম অনুযায়ী ফিল্টার করুন
+              </Label>
+              <div className="flex flex-wrap gap-3">
+                {VILLAGES.map((v) => (
+                  <div
+                    key={v}
+                    className="flex items-center gap-2 cursor-pointer select-none"
+                    data-ocid={`notice.village.${v}`}
+                    onClick={() => toggleVillage(v)}
+                    onKeyDown={(e) => e.key === "Enter" && toggleVillage(v)}
+                  >
+                    <Checkbox
+                      id={`village-notice-${v}`}
+                      checked={selectedVillages.includes(v)}
+                      onCheckedChange={() => toggleVillage(v)}
+                      className="h-4 w-4"
+                    />
+                    <label
+                      htmlFor={`village-notice-${v}`}
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      {v}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Box */}
+            <div className="relative">
+              <Input
+                data-ocid="notice.search.input"
+                placeholder="নাম, ইউজার আইডি, মোবাইল, কার্নিভাল আইডি বা সিআইডি দিয়ে সার্চ করুন..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-4"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              মোট {filteredCustomers.length} জন গ্রাহক | WhatsApp / IMO / SMS বাটনে
+              ক্লিক করে নোটিশ পাঠান
+            </p>
+
+            {/* Table */}
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
@@ -309,18 +420,21 @@ export default function NoticePage() {
                       ক্রমিক
                     </th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                      ইউজার নেম/ইউজার আইডি
+                      ইউজার নেম/আইডি
                     </th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
                       মোবাইল নম্বর
                     </th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                      পাঠান
+                      গ্রাম
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                      নোটিশ পাঠান
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rawCustomers.map((c, i) => (
+                  {filteredCustomers.map((c, i) => (
                     <tr
                       key={c.id.toString()}
                       className="border-b border-border last:border-0 hover:bg-muted/20"
@@ -335,8 +449,12 @@ export default function NoticePage() {
                       <td className="py-3 px-4 text-muted-foreground font-mono">
                         {c.phone}
                       </td>
+                      <td className="py-3 px-4 text-muted-foreground text-xs">
+                        {normalizeVillage(c.address || "")}
+                      </td>
                       <td className="py-3 px-4">
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap">
+                          {/* WhatsApp */}
                           <Button
                             size="sm"
                             className="bg-green-600 hover:bg-green-700 text-white h-7 px-2.5 text-xs"
@@ -346,6 +464,28 @@ export default function NoticePage() {
                             <MessageCircle size={12} className="mr-1" />
                             WhatsApp
                           </Button>
+                          {/* IMO */}
+                          <Button
+                            size="sm"
+                            className="bg-blue-500 hover:bg-blue-600 text-white h-7 px-2.5 text-xs"
+                            onClick={() => openIMO(c.phone)}
+                            data-ocid={`notice.imo.button.${i + 1}`}
+                          >
+                            <MessageCircle size={12} className="mr-1" />
+                            IMO
+                          </Button>
+                          {/* SMS */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-xs border-orange-400 text-orange-600 hover:bg-orange-50"
+                            onClick={() => openSMS(c.phone)}
+                            data-ocid={`notice.sms.button.${i + 1}`}
+                          >
+                            <Phone size={12} className="mr-1" />
+                            SMS
+                          </Button>
+                          {/* Copy */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -371,7 +511,7 @@ export default function NoticePage() {
                   ))}
                 </tbody>
               </table>
-              {rawCustomers.length === 0 && (
+              {filteredCustomers.length === 0 && (
                 <p
                   className="text-center text-muted-foreground py-12"
                   data-ocid="notice.customer_list.empty_state"

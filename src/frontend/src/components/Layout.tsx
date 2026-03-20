@@ -11,15 +11,16 @@ import {
   Bell,
   Cable,
   ChevronDown,
+  CreditCard,
   LayoutDashboard,
   LogOut,
   Megaphone,
   Menu,
+  Phone,
   Settings,
   Shield,
   Users,
   Wallet,
-  Wifi,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCompanySettings } from "../hooks/useCompanySettings";
@@ -31,7 +32,9 @@ type Page =
   | "finance"
   | "network"
   | "settings"
-  | "notice";
+  | "notice"
+  | "call"
+  | "idcard";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -48,6 +51,8 @@ const navItems = [
   { id: "finance" as Page, label: "আর্থিক ব্যবস্থাপনা", icon: Wallet },
   { id: "notice" as Page, label: "নোটিশ বোর্ড", icon: Megaphone },
   { id: "network" as Page, label: "অপটিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
+  { id: "call" as Page, label: "কল সেন্টার", icon: Phone },
+  { id: "idcard" as Page, label: "আইডি কার্ড", icon: CreditCard },
   { id: "settings" as Page, label: "সেটিংস", icon: Settings },
 ];
 
@@ -114,14 +119,12 @@ export default function Layout({
           style={{ borderColor: "oklch(0.22 0.04 252)" }}
         >
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary overflow-hidden shrink-0">
-            {settings.logo ? (
+            {settings.logo && (
               <img
                 src={settings.logo}
                 className="w-9 h-9 rounded-lg object-contain bg-white"
                 alt="লোগো"
               />
-            ) : (
-              <Wifi className="w-5 h-5 text-white" />
             )}
           </div>
           <div className="min-w-0">
