@@ -35,8 +35,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { ServiceStatus } from "../backend";
+import { normalizeAddress, toTitleCase } from "../data/addressNormalization";
 import { VILLAGES } from "../data/sampleData";
-import { normalizeVillage } from "../data/villageNormalization";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
 import { usePackages } from "../hooks/useQueries";
@@ -75,6 +75,7 @@ interface BulkRow {
   carnivalId: string;
   cidNumber: string;
   village: string;
+  address: string;
   packageName: string;
   monthlyFee: string;
   connectionDate: string;
@@ -95,7 +96,7 @@ const emptyForm: CustomerFormData = {
   packageId: "1",
   monthlyFee: "600",
   connectionDate: todayStr,
-  connectionFeeCash: "1000",
+  connectionFeeCash: "",
   connectionFeeDue: "0",
   commissionPercent: "30",
 };
@@ -104,20 +105,18 @@ const BULK_FORMAT_HINT = `প্রতিটি লাইনে একজন গ
 
 ইউজার নেম | পাসওয়ার্ড | মোবাইল | কার্নিভাল আইডি | সিআইডি | গ্রাম | প্যাকেজ | মাসিক বিল | তারিখ (YYYY-MM-DD) | কমিশন%
 
-পাইপ ফরম্যাট উদাহরণ:
+উদাহরণ:
 Md Jalal Miah | ja4321 | 01311411152 | 1279832 | 277465 | Baligaw Islampara | 20 Mbps | 840 | 2026-03-08
 
-Excel/ট্যাব ফরম্যাট উদাহরণ:
-user001	1234	01711000001	CRN001	CID001	বালিগাঁও	10 Mbps	600	2024-01-15	30
-
-নোট: পাসওয়ার্ড বা কার্নিভাল আইডি না থাকলে — (ড্যাশ) লিখুন বা খালি রাখুন।`;
+নোট: পাসওয়ার্ড বা কার্নিভাল আইডি না থাকলে — (ড্যাশ) লিখুন বা খালি রাখুন।
+নামের বড়/ছোট হাতের বিষয় সিস্টেম স্বয়ংক্রিয়ভাবে ঠিক করে নেবে।
+ঠিকানায় পাড়া আগে ও গ্রাম পরে না থাকলেও সিস্টেম স্বয়ংক্রিয়ভাবে সংশোধন করবে।`;
 
 function parseBulkText(text: string): BulkRow[] {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0)
-    // Skip header lines and separator lines
     .filter(
       (l) =>
         !l.startsWith("---") &&
@@ -126,7 +125,6 @@ function parseBulkText(text: string): BulkRow[] {
     );
 
   return lines.map((line) => {
-    // support pipe, tab or comma separated
     let cols: string[];
     if (line.includes("|")) {
       cols = line.split("|").map((c) => c.trim().replace(/^—$|^-$/, ""));
@@ -136,12 +134,18 @@ function parseBulkText(text: string): BulkRow[] {
       cols = line.split(",").map((c) => c.trim().replace(/^—$|^-$/, ""));
     }
     const get = (i: number) => (cols[i] ?? "").replace(/^—$/, "").trim();
-    const username = get(0);
+
+    // Auto title-case the name
+    const username = toTitleCase(get(0));
     const password = get(1);
     const phone = get(2);
     const carnivalId = get(3);
     const cidNumber = get(4);
-    const village = normalizeVillage(get(5));
+
+    // Normalize address: village + para → "Para, Village"
+    const rawAddr = get(5);
+    const { village, address } = normalizeAddress(rawAddr);
+
     const packageName = get(6);
     const monthlyFee = get(7);
     const connectionDate = get(8) || todayStr;
@@ -158,6 +162,7 @@ function parseBulkText(text: string): BulkRow[] {
       carnivalId,
       cidNumber,
       village,
+      address,
       packageName,
       monthlyFee,
       connectionDate,
@@ -180,7 +185,6 @@ export default function Customers() {
   const isLoading = false;
 
   const allCustomers = rawLocalCustomers;
-
   const allPackages = packages ?? [];
 
   const [search, setSearch] = useState("");
@@ -195,7 +199,6 @@ export default function Customers() {
   const [showPassword, setShowPassword] = useState(false);
   const [showFormPassword, setShowFormPassword] = useState(false);
 
-  // Bulk import state
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkRows, setBulkRows] = useState<BulkRow[]>([]);
@@ -215,7 +218,8 @@ export default function Customers() {
     const matchSearch =
       c.username.toLowerCase().includes(search.toLowerCase()) ||
       c.phone.includes(search) ||
-      c.carnivalId.toLowerCase().includes(search.toLowerCase());
+      c.carnivalId.toLowerCase().includes(search.toLowerCase()) ||
+      c.cidNumber.toLowerCase().includes(search.toLowerCase());
     const matchVillage =
       selectedVillages.size === 0 || selectedVillages.has(c.village);
     return matchSearch && matchVillage;
@@ -240,7 +244,9 @@ export default function Customers() {
       packageId: c.packageId.toString(),
       monthlyFee: c.monthlyFee.toString(),
       connectionDate: toDateInputValue(c.connectionDate),
-      connectionFeeCash: c.connectionFeeCash.toString(),
+      connectionFeeCash: c.connectionFeeCash
+        ? c.connectionFeeCash.toString()
+        : "",
       connectionFeeDue: c.connectionFeeDue.toString(),
       commissionPercent: (c.commissionPercent ?? 30).toString(),
     });
@@ -250,23 +256,31 @@ export default function Customers() {
 
   async function handleSave() {
     setSaving(true);
+    // Auto title-case name; auto-normalize address order
+    const cleanName = toTitleCase(form.username);
+    const { village: resolvedVillage, address: resolvedAddress } = form.village
+      ? { village: form.village, address: form.village }
+      : { village: "", address: "" };
+
     if (editingCustomer) {
       updateCustomer({
         ...editingCustomer,
-        username: form.username,
-        name: form.username,
+        username: cleanName,
+        name: cleanName,
         password: form.password,
         phone: form.phone,
         carnivalId: form.carnivalId,
         cidNumber: form.cidNumber,
-        village: form.village,
-        area: form.village,
-        address: form.village,
+        village: resolvedVillage,
+        area: resolvedVillage,
+        address: resolvedAddress,
         packageId: BigInt(form.packageId),
         monthlyFee: Number.parseInt(form.monthlyFee) || 600,
         connectionDate:
           BigInt(new Date(form.connectionDate).getTime()) * 1000000n,
-        connectionFeeCash: Number.parseInt(form.connectionFeeCash) || 0,
+        connectionFeeCash: form.connectionFeeCash
+          ? Number.parseInt(form.connectionFeeCash)
+          : 0,
         connectionFeeDue: Number.parseInt(form.connectionFeeDue) || 0,
         commissionPercent: Number.parseInt(form.commissionPercent) || 30,
       });
@@ -274,23 +288,25 @@ export default function Customers() {
       addCustomers([
         {
           id: 0n,
-          name: form.username,
-          username: form.username,
+          name: cleanName,
+          username: cleanName,
           password: form.password,
           phone: form.phone,
           email: "",
           carnivalId: form.carnivalId,
           cidNumber: form.cidNumber,
-          village: form.village,
-          area: form.village,
-          address: form.village,
+          village: resolvedVillage,
+          area: resolvedVillage,
+          address: resolvedAddress,
           packageId: BigInt(form.packageId),
           monthlyFee: Number.parseInt(form.monthlyFee) || 600,
           dueAmount: 0,
           status: ServiceStatus.active,
           connectionDate:
             BigInt(new Date(form.connectionDate).getTime()) * 1000000n,
-          connectionFeeCash: Number.parseInt(form.connectionFeeCash) || 0,
+          connectionFeeCash: form.connectionFeeCash
+            ? Number.parseInt(form.connectionFeeCash)
+            : 0,
           connectionFeeDue: Number.parseInt(form.connectionFeeDue) || 0,
           commissionPercent: Number.parseInt(form.commissionPercent) || 30,
         },
@@ -353,7 +369,6 @@ export default function Customers() {
     printDocument(title, bodyHTML, settings);
   }
 
-  // Bulk import handlers
   function handleBulkParse() {
     if (!bulkText.trim()) {
       toast.error("কোনো তথ্য পেস্ট করা হয়নি");
@@ -381,7 +396,7 @@ export default function Customers() {
       phone: row.phone,
       email: "",
       area: row.village,
-      address: row.village,
+      address: row.address,
       packageId: 1n,
       monthlyFee: Number.parseInt(row.monthlyFee) || 600,
       dueAmount: 0,
@@ -393,7 +408,7 @@ export default function Customers() {
       password: row.password,
       carnivalId: row.carnivalId,
       cidNumber: row.cidNumber,
-      connectionFeeCash: 1000,
+      connectionFeeCash: 0,
       connectionFeeDue: 0,
       village: row.village,
       commissionPercent: Number.parseInt(row.commissionPercent) || 30,
@@ -642,7 +657,7 @@ export default function Customers() {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, connectionFeeCash: e.target.value }))
                 }
-                placeholder="১০০০"
+                placeholder="খালি রাখুন বা পরিমাণ লিখুন"
               />
             </div>
             <div className="space-y-1.5">
@@ -835,8 +850,7 @@ export default function Customers() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
-                  গ্রাহকের তথ্য এখানে পেস্ট করুন (Excel বা Spreadsheet থেকে কপি করে
-                  পেস্ট করুন)
+                  গ্রাহকের তথ্য এখানে পেস্ট করুন
                 </Label>
                 <Textarea
                   data-ocid="customers.bulk_textarea"
@@ -876,7 +890,6 @@ export default function Customers() {
 
           {bulkStep === "preview" && (
             <div className="space-y-4 py-2">
-              {/* Summary */}
               <div className="flex gap-4">
                 <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
                   <CheckCircle2 size={16} className="text-green-600" />
@@ -893,8 +906,6 @@ export default function Customers() {
                   </div>
                 )}
               </div>
-
-              {/* Preview table */}
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-96">
                   <table className="w-full text-xs">
@@ -910,19 +921,19 @@ export default function Customers() {
                           মোবাইল
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
-                          কার্নিভাল আইডি
+                          কার্নিভাল
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
                           সিআইডি
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
-                          গ্রাম
+                          ঠিকানা
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
                           প্যাকেজ
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
-                          মাসিক বিল
+                          বিল
                         </th>
                         <th className="text-left py-2 px-3 font-semibold text-muted-foreground">
                           অবস্থা
@@ -933,9 +944,7 @@ export default function Customers() {
                       {bulkRows.map((row, i) => (
                         <tr
                           key={`${row.username}-${row.phone}-${i}`}
-                          className={`border-b border-border last:border-0 ${
-                            row.valid ? "hover:bg-muted/20" : "bg-red-50/50"
-                          }`}
+                          className={`border-b border-border last:border-0 ${row.valid ? "hover:bg-muted/20" : "bg-red-50/50"}`}
                         >
                           <td className="py-2 px-3 text-muted-foreground">
                             {i + 1}
@@ -957,7 +966,7 @@ export default function Customers() {
                             {row.cidNumber || "—"}
                           </td>
                           <td className="py-2 px-3 text-muted-foreground">
-                            {row.village || "—"}
+                            {row.address || "—"}
                           </td>
                           <td className="py-2 px-3 text-muted-foreground">
                             {row.packageName || "—"}
@@ -982,7 +991,6 @@ export default function Customers() {
                   </table>
                 </div>
               </div>
-
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setBulkStep("input")}>
                   পিছনে যান

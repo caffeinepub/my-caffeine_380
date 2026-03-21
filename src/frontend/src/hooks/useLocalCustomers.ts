@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { ServiceStatus } from "../backend";
-import { normalizeVillage } from "../data/villageNormalization";
+import { normalizeAddress, toTitleCase } from "../data/addressNormalization";
 import type { ExtendedCustomer } from "../types/extended";
 
-const KEY = "nosheen_customers_v3";
+// Bump version to force re-seed with corrected names/addresses
+const KEY = "nosheen_customers_v4";
 
 function serialize(c: ExtendedCustomer): object {
   return {
@@ -1223,7 +1224,7 @@ function buildSeedCustomers(): ExtendedCustomer[] {
   return RAW_SEED.map(
     ([
       id,
-      username,
+      rawUsername,
       password,
       phone,
       carnivalId,
@@ -1232,14 +1233,15 @@ function buildSeedCustomers(): ExtendedCustomer[] {
       monthlyFee,
       dateStr,
     ]) => {
-      const village = normalizeVillage(rawAddress);
+      const username = toTitleCase(rawUsername);
+      const { village, address } = normalizeAddress(rawAddress);
       return {
         id: BigInt(id),
         name: username,
         phone,
         email: "",
         area: village,
-        address: rawAddress,
+        address,
         packageId: 1n,
         monthlyFee,
         dueAmount: 0,
