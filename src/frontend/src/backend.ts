@@ -89,10 +89,35 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface CustomerFinancialOverride {
-    connectionFeeCash: number;
-    cidNumber: string;
-    connectionFeeDue: number;
+export interface AdvanceRechargeDue {
+    id: string;
+    userName: string;
+    createdAt: bigint;
+    dueMonth: string;
+    serial: bigint;
+    address: string;
+    mobile: string;
+    carnivalId: string;
+    dueAmount: number;
+}
+export type Time = bigint;
+export interface Package {
+    id: bigint;
+    name: string;
+    description: string;
+    speed: string;
+    monthlyPrice: number;
+}
+export interface Expense {
+    id: string;
+    date: string;
+    createdAt: bigint;
+    rate: number;
+    unit: string;
+    description: string;
+    serial: bigint;
+    category: string;
+    amount: number;
 }
 export interface Customer {
     id: bigint;
@@ -107,17 +132,10 @@ export interface Customer {
     packageId: bigint;
     dueAmount: number;
 }
-export type Time = bigint;
-export interface AdminAccount {
-    name: string;
-    email: string;
-}
-export interface Node {
-    id: bigint;
-    status: string;
-    name: string;
-    connectedCustomers: bigint;
-    location: string;
+export interface CustomerFinancialOverride {
+    connectionFeeCash: number;
+    cidNumber: string;
+    connectionFeeDue: number;
 }
 export interface Payment {
     id: bigint;
@@ -129,25 +147,68 @@ export interface Payment {
     customerId: bigint;
     amount: number;
 }
-export interface Package {
-    id: bigint;
+export interface TechnicianSalaryDue {
+    id: string;
+    technicianName: string;
+    createdAt: bigint;
+    dueMonth: string;
+    serial: bigint;
+    totalDue: number;
+    dueAmount: number;
+}
+export interface AdminAccount {
     name: string;
-    description: string;
-    speed: string;
-    monthlyPrice: number;
+    email: string;
+}
+export interface Node {
+    id: bigint;
+    status: string;
+    name: string;
+    connectedCustomers: bigint;
+    location: string;
+}
+export interface DebtSummary {
+    totalPayables: number;
+    totalReceivables: number;
+}
+export interface ConnectionFeeDue {
+    id: string;
+    userName: string;
+    cidNumber: string;
+    createdAt: bigint;
+    dueMonth: string;
+    serial: bigint;
+    address: string;
+    mobile: string;
+    dueAmount: number;
+}
+export interface CommissionDue {
+    id: string;
+    commissionSource: string;
+    totalCommission: number;
+    paidCommission: number;
+    createdAt: bigint;
+    dueMonth: string;
+    serial: bigint;
+    outstandingCommission: number;
 }
 export interface UserProfile {
     name: string;
 }
-export interface Expense {
+export interface WholesalerDue {
     id: string;
     date: string;
     createdAt: bigint;
     rate: number;
-    unit: string;
-    description: string;
+    dueBill: number;
+    productName: string;
     serial: bigint;
-    category: string;
+    paidBill: number;
+    totalAmount: number;
+    address: string;
+    quantity: number;
+    mobile: string;
+    wholesalerName: string;
     amount: number;
 }
 export enum ServiceStatus {
@@ -163,15 +224,29 @@ export enum UserRole {
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addAdminAccount(email: string, password: string, name: string): Promise<void>;
+    addAdvanceRechargeDue(record: AdvanceRechargeDue): Promise<void>;
+    addCommissionDue(record: CommissionDue): Promise<void>;
+    addConnectionFeeDue(record: ConnectionFeeDue): Promise<void>;
     addExpense(expense: Expense): Promise<void>;
+    addTechnicianSalaryDue(record: TechnicianSalaryDue): Promise<void>;
+    addWholesalerDue(record: WholesalerDue): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    deleteAdvanceRechargeDue(id: string): Promise<void>;
+    deleteCommissionDue(id: string): Promise<void>;
+    deleteConnectionFeeDue(id: string): Promise<void>;
     deleteExpense(expenseId: string): Promise<void>;
+    deleteTechnicianSalaryDue(id: string): Promise<void>;
+    deleteWholesalerDue(id: string): Promise<void>;
     getAdminAccounts(): Promise<Array<AdminAccount>>;
+    getAdvanceRechargeDues(): Promise<Array<AdvanceRechargeDue>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCommissionDues(): Promise<Array<CommissionDue>>;
+    getConnectionFeeDues(): Promise<Array<ConnectionFeeDue>>;
     getCustomer(id: bigint): Promise<Customer>;
     getCustomerFinancials(): Promise<Array<CustomerFinancialOverride>>;
     getCustomers(): Promise<Array<Customer>>;
+    getDebtSummary(): Promise<DebtSummary>;
     getExpenses(): Promise<Array<Expense>>;
     getNode(id: bigint): Promise<Node>;
     getNodes(): Promise<Array<Node>>;
@@ -179,13 +254,20 @@ export interface backendInterface {
     getPackages(): Promise<Array<Package>>;
     getPayment(id: bigint): Promise<Payment>;
     getPayments(): Promise<Array<Payment>>;
+    getTechnicianSalaryDues(): Promise<Array<TechnicianSalaryDue>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getWholesalerDues(): Promise<Array<WholesalerDue>>;
     isCallerAdmin(): Promise<boolean>;
     loginAdminAccount(email: string, password: string): Promise<string>;
     removeAdminAccount(email: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateAdvanceRechargeDue(record: AdvanceRechargeDue): Promise<void>;
+    updateCommissionDue(record: CommissionDue): Promise<void>;
+    updateConnectionFeeDue(record: ConnectionFeeDue): Promise<void>;
     updateCustomerFinancial(override: CustomerFinancialOverride): Promise<void>;
     updateExpense(expense: Expense): Promise<void>;
+    updateTechnicianSalaryDue(record: TechnicianSalaryDue): Promise<void>;
+    updateWholesalerDue(record: WholesalerDue): Promise<void>;
 }
 import type { Customer as _Customer, ServiceStatus as _ServiceStatus, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -218,6 +300,48 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async addAdvanceRechargeDue(arg0: AdvanceRechargeDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addAdvanceRechargeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addAdvanceRechargeDue(arg0);
+            return result;
+        }
+    }
+    async addCommissionDue(arg0: CommissionDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCommissionDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCommissionDue(arg0);
+            return result;
+        }
+    }
+    async addConnectionFeeDue(arg0: ConnectionFeeDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addConnectionFeeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addConnectionFeeDue(arg0);
+            return result;
+        }
+    }
     async addExpense(arg0: Expense): Promise<void> {
         if (this.processError) {
             try {
@@ -229,6 +353,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.addExpense(arg0);
+            return result;
+        }
+    }
+    async addTechnicianSalaryDue(arg0: TechnicianSalaryDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addTechnicianSalaryDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addTechnicianSalaryDue(arg0);
+            return result;
+        }
+    }
+    async addWholesalerDue(arg0: WholesalerDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addWholesalerDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addWholesalerDue(arg0);
             return result;
         }
     }
@@ -246,6 +398,48 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deleteAdvanceRechargeDue(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteAdvanceRechargeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteAdvanceRechargeDue(arg0);
+            return result;
+        }
+    }
+    async deleteCommissionDue(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCommissionDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCommissionDue(arg0);
+            return result;
+        }
+    }
+    async deleteConnectionFeeDue(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteConnectionFeeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteConnectionFeeDue(arg0);
+            return result;
+        }
+    }
     async deleteExpense(arg0: string): Promise<void> {
         if (this.processError) {
             try {
@@ -260,6 +454,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deleteTechnicianSalaryDue(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteTechnicianSalaryDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteTechnicianSalaryDue(arg0);
+            return result;
+        }
+    }
+    async deleteWholesalerDue(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteWholesalerDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteWholesalerDue(arg0);
+            return result;
+        }
+    }
     async getAdminAccounts(): Promise<Array<AdminAccount>> {
         if (this.processError) {
             try {
@@ -271,6 +493,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAdminAccounts();
+            return result;
+        }
+    }
+    async getAdvanceRechargeDues(): Promise<Array<AdvanceRechargeDue>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdvanceRechargeDues();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdvanceRechargeDues();
             return result;
         }
     }
@@ -300,6 +536,34 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCallerUserRole();
             return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCommissionDues(): Promise<Array<CommissionDue>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCommissionDues();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCommissionDues();
+            return result;
+        }
+    }
+    async getConnectionFeeDues(): Promise<Array<ConnectionFeeDue>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getConnectionFeeDues();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getConnectionFeeDues();
+            return result;
         }
     }
     async getCustomer(arg0: bigint): Promise<Customer> {
@@ -342,6 +606,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCustomers();
             return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getDebtSummary(): Promise<DebtSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDebtSummary();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDebtSummary();
+            return result;
         }
     }
     async getExpenses(): Promise<Array<Expense>> {
@@ -442,6 +720,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getTechnicianSalaryDues(): Promise<Array<TechnicianSalaryDue>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTechnicianSalaryDues();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTechnicianSalaryDues();
+            return result;
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -454,6 +746,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getUserProfile(arg0);
             return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getWholesalerDues(): Promise<Array<WholesalerDue>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getWholesalerDues();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getWholesalerDues();
+            return result;
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -512,6 +818,48 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateAdvanceRechargeDue(arg0: AdvanceRechargeDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateAdvanceRechargeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateAdvanceRechargeDue(arg0);
+            return result;
+        }
+    }
+    async updateCommissionDue(arg0: CommissionDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCommissionDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCommissionDue(arg0);
+            return result;
+        }
+    }
+    async updateConnectionFeeDue(arg0: ConnectionFeeDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateConnectionFeeDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateConnectionFeeDue(arg0);
+            return result;
+        }
+    }
     async updateCustomerFinancial(arg0: CustomerFinancialOverride): Promise<void> {
         if (this.processError) {
             try {
@@ -537,6 +885,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateExpense(arg0);
+            return result;
+        }
+    }
+    async updateTechnicianSalaryDue(arg0: TechnicianSalaryDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTechnicianSalaryDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTechnicianSalaryDue(arg0);
+            return result;
+        }
+    }
+    async updateWholesalerDue(arg0: WholesalerDue): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateWholesalerDue(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateWholesalerDue(arg0);
             return result;
         }
     }

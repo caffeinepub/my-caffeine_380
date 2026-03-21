@@ -11,6 +11,38 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AdminAccount { 'name' : string, 'email' : string }
+export interface AdvanceRechargeDue {
+  'id' : string,
+  'userName' : string,
+  'createdAt' : bigint,
+  'dueMonth' : string,
+  'serial' : bigint,
+  'address' : string,
+  'mobile' : string,
+  'carnivalId' : string,
+  'dueAmount' : number,
+}
+export interface CommissionDue {
+  'id' : string,
+  'commissionSource' : string,
+  'totalCommission' : number,
+  'paidCommission' : number,
+  'createdAt' : bigint,
+  'dueMonth' : string,
+  'serial' : bigint,
+  'outstandingCommission' : number,
+}
+export interface ConnectionFeeDue {
+  'id' : string,
+  'userName' : string,
+  'cidNumber' : string,
+  'createdAt' : bigint,
+  'dueMonth' : string,
+  'serial' : bigint,
+  'address' : string,
+  'mobile' : string,
+  'dueAmount' : number,
+}
 export interface Customer {
   'id' : bigint,
   'status' : ServiceStatus,
@@ -28,6 +60,10 @@ export interface CustomerFinancialOverride {
   'connectionFeeCash' : number,
   'cidNumber' : string,
   'connectionFeeDue' : number,
+}
+export interface DebtSummary {
+  'totalPayables' : number,
+  'totalReceivables' : number,
 }
 export interface Expense {
   'id' : string,
@@ -67,23 +103,62 @@ export interface Payment {
 export type ServiceStatus = { 'active' : null } |
   { 'inactive' : null } |
   { 'suspended' : null };
+export interface TechnicianSalaryDue {
+  'id' : string,
+  'technicianName' : string,
+  'createdAt' : bigint,
+  'dueMonth' : string,
+  'serial' : bigint,
+  'totalDue' : number,
+  'dueAmount' : number,
+}
 export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface WholesalerDue {
+  'id' : string,
+  'date' : string,
+  'createdAt' : bigint,
+  'rate' : number,
+  'dueBill' : number,
+  'productName' : string,
+  'serial' : bigint,
+  'paidBill' : number,
+  'totalAmount' : number,
+  'address' : string,
+  'quantity' : number,
+  'mobile' : string,
+  'wholesalerName' : string,
+  'amount' : number,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdminAccount' : ActorMethod<[string, string, string], undefined>,
+  'addAdvanceRechargeDue' : ActorMethod<[AdvanceRechargeDue], undefined>,
+  'addCommissionDue' : ActorMethod<[CommissionDue], undefined>,
+  'addConnectionFeeDue' : ActorMethod<[ConnectionFeeDue], undefined>,
   'addExpense' : ActorMethod<[Expense], undefined>,
+  'addTechnicianSalaryDue' : ActorMethod<[TechnicianSalaryDue], undefined>,
+  'addWholesalerDue' : ActorMethod<[WholesalerDue], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'deleteAdvanceRechargeDue' : ActorMethod<[string], undefined>,
+  'deleteCommissionDue' : ActorMethod<[string], undefined>,
+  'deleteConnectionFeeDue' : ActorMethod<[string], undefined>,
   'deleteExpense' : ActorMethod<[string], undefined>,
+  'deleteTechnicianSalaryDue' : ActorMethod<[string], undefined>,
+  'deleteWholesalerDue' : ActorMethod<[string], undefined>,
   'getAdminAccounts' : ActorMethod<[], Array<AdminAccount>>,
+  'getAdvanceRechargeDues' : ActorMethod<[], Array<AdvanceRechargeDue>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCommissionDues' : ActorMethod<[], Array<CommissionDue>>,
+  'getConnectionFeeDues' : ActorMethod<[], Array<ConnectionFeeDue>>,
   'getCustomer' : ActorMethod<[bigint], Customer>,
   'getCustomerFinancials' : ActorMethod<[], Array<CustomerFinancialOverride>>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
+  'getDebtSummary' : ActorMethod<[], DebtSummary>,
   'getExpenses' : ActorMethod<[], Array<Expense>>,
   'getNode' : ActorMethod<[bigint], Node>,
   'getNodes' : ActorMethod<[], Array<Node>>,
@@ -91,16 +166,23 @@ export interface _SERVICE {
   'getPackages' : ActorMethod<[], Array<Package>>,
   'getPayment' : ActorMethod<[bigint], Payment>,
   'getPayments' : ActorMethod<[], Array<Payment>>,
+  'getTechnicianSalaryDues' : ActorMethod<[], Array<TechnicianSalaryDue>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getWholesalerDues' : ActorMethod<[], Array<WholesalerDue>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'loginAdminAccount' : ActorMethod<[string, string], string>,
   'removeAdminAccount' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateAdvanceRechargeDue' : ActorMethod<[AdvanceRechargeDue], undefined>,
+  'updateCommissionDue' : ActorMethod<[CommissionDue], undefined>,
+  'updateConnectionFeeDue' : ActorMethod<[ConnectionFeeDue], undefined>,
   'updateCustomerFinancial' : ActorMethod<
     [CustomerFinancialOverride],
     undefined
   >,
   'updateExpense' : ActorMethod<[Expense], undefined>,
+  'updateTechnicianSalaryDue' : ActorMethod<[TechnicianSalaryDue], undefined>,
+  'updateWholesalerDue' : ActorMethod<[WholesalerDue], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

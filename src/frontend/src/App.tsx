@@ -6,6 +6,7 @@ import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import CallCenter from "./pages/CallCenter";
 import Customers from "./pages/Customers";
 import Dashboard from "./pages/Dashboard";
+import DebtManagement from "./pages/DebtManagement";
 import Finance from "./pages/Finance";
 import IdCard from "./pages/IdCard";
 import LoginPage from "./pages/LoginPage";
@@ -17,6 +18,7 @@ type Page =
   | "dashboard"
   | "customers"
   | "finance"
+  | "debts"
   | "network"
   | "settings"
   | "notice"
@@ -103,6 +105,8 @@ function AppContent() {
         return <Customers isAdmin={isAdmin} />;
       case "finance":
         return <Finance isAdmin={isAdmin} />;
+      case "debts":
+        return <DebtManagement isAdmin={isAdmin} />;
       case "notice":
         return <NoticePage isAdmin={isAdmin} />;
       case "network":

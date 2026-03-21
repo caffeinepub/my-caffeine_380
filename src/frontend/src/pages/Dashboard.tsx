@@ -2,12 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertCircle,
+  ArrowLeftRight,
   Banknote,
   Calendar,
   TrendingDown,
   TrendingUp,
   Users,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -21,6 +23,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useActor } from "../hooks/useActor";
 import { useExpenses } from "../hooks/useExpenses";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
 
@@ -145,11 +148,23 @@ const PieTooltip = ({ active, payload }: any) => {
 interface DashboardProps {
   isAdmin?: boolean;
 }
-export default function Dashboard({
-  isAdmin: _isAdmin = false,
-}: DashboardProps) {
+export default function Dashboard({ isAdmin = false }: DashboardProps) {
   const { customers } = useLocalCustomers();
   const { expenses } = useExpenses();
+
+  const { actor } = useActor();
+  const [debtSummary, setDebtSummary] = useState({
+    totalReceivables: 0,
+    totalPayables: 0,
+  });
+  useEffect(() => {
+    if (isAdmin && actor) {
+      actor
+        .getDebtSummary()
+        .then((s) => setDebtSummary(s))
+        .catch(() => {});
+    }
+  }, [isAdmin, actor]);
 
   const totalCustomers = customers.length;
   const expectedMonthly = customers.reduce((sum, c) => sum + c.monthlyFee, 0);
@@ -396,6 +411,63 @@ export default function Dashboard({
           </CardContent>
         </Card>
       </div>
+
+      {/* Debt Summary Cards */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card
+            className="shadow-card border-border"
+            data-ocid="dashboard.kpi.item.7"
+          >
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-2">
+                    u09aeu09cbu099f u09aau09cdu09b0u09beu09aau09cdu09af
+                    u09acu0995u09c7u09afu09bcu09be
+                  </p>
+                  <p className="text-2xl font-bold text-teal-600">
+                    {formatCurrency(debtSummary.totalReceivables)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    u09b8u0982u09afu09cbu0997 u09abu09bf u0993
+                    u0995u09aeu09bfu09b6u09a8
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-teal-500/10">
+                  <ArrowLeftRight className="w-5 h-5 text-teal-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="shadow-card border-border"
+            data-ocid="dashboard.kpi.item.8"
+          >
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-2">
+                    u09aeu09cbu099f u09aau09cdu09b0u09a6u09c7u09afu09bc
+                    u09acu0995u09c7u09afu09bcu09be
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {formatCurrency(debtSummary.totalPayables)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    u099fu09c7u0995u09a8u09bfu09b6u09bfu09afu09bcu09beu09a8,
+                    u09b9u09cbu09b2u09b8u09c7u09b2u09beu09b0,
+                    u0985u0997u09cdu09b0u09bfu09ae
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-orange-500/10">
+                  <ArrowLeftRight className="w-5 h-5 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Tabbed Charts */}
       <Card

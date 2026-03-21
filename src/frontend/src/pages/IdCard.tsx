@@ -7,11 +7,15 @@ import {
   CreditCard,
   Download,
   Loader2,
+  MessageCircle,
+  MessageSquare,
   Printer,
   Search,
+  Share2,
   Star,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
 import { usePackages } from "../hooks/useQueries";
@@ -483,6 +487,26 @@ function triggerDownload(canvas: HTMLCanvasElement, filename: string) {
   }, "image/png");
 }
 
+async function buildCombinedCanvas(
+  _customer: ExtendedCustomer,
+  drawData: DrawData,
+): Promise<HTMLCanvasElement> {
+  await document.fonts.ready;
+  const canvas = document.createElement("canvas");
+  canvas.width = A4_W;
+  canvas.height = A4_H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, A4_W, A4_H);
+  const cardW = Math.round(CARD_WIDTH * SCALE_A4);
+  const margin = 60;
+  const gap = 40;
+  await drawFrontCard(ctx, SCALE_A4, drawData, margin, margin);
+  await drawBackCard(ctx, SCALE_A4, margin + cardW + gap, margin);
+  return canvas;
+}
+
 interface IdCardProps {
   isAdmin?: boolean;
 }
@@ -498,6 +522,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
     useState<ExtendedCustomer | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   function toggleVillage(v: string) {
@@ -550,6 +575,13 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
     };
   }
 
+  function buildShareMessage(customer: ExtendedCustomer): string {
+    const pkg = getPackage(customer);
+    return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।
+আপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${customer.cidNumber || ""} এবং মোবাইল নম্বর ${customer.phone} ব্যবহার করে আজই রিচার্জ করুন।
+আপনার প্যাকেজটি ${pkg?.speed || ""} এমবিপিএস এবং মাসিক বিল ${customer.monthlyFee ?? 0} টাকা।`;
+  }
+
   async function downloadFront() {
     if (!selectedCustomer) return;
     setIsDownloading(true);
@@ -589,31 +621,105 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
     if (!selectedCustomer) return;
     setIsDownloading(true);
     try {
-      await document.fonts.ready;
-      const canvas = document.createElement("canvas");
-      canvas.width = A4_W;
-      canvas.height = A4_H;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      // White A4 background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, A4_W, A4_H);
-
-      const cardW = Math.round(CARD_WIDTH * SCALE_A4);
-      const margin = 60;
-      const gap = 40;
-
       const data = buildDrawData(selectedCustomer);
-      // Front card at top-left
-      await drawFrontCard(ctx, SCALE_A4, data, margin, margin);
-      // Back card next to front
-      await drawBackCard(ctx, SCALE_A4, margin + cardW + gap, margin);
-
+      const canvas = await buildCombinedCanvas(selectedCustomer, data);
       triggerDownload(canvas, `${selectedCustomer.username}_A4.png`);
     } finally {
       setIsDownloading(false);
     }
+  }
+
+  async function downloadPDF() {
+    if (!selectedCustomer) return;
+    setIsDownloading(true);
+    try {
+      const data = buildDrawData(selectedCustomer);
+      const canvas = await buildCombinedCanvas(selectedCustomer, data);
+      // Open image in a new tab/window and trigger browser print-to-PDF
+      const dataUrl = canvas.toDataURL("image/png");
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(
+          `<html><head><title>${selectedCustomer!.username} আইডি কার্ড</title><style>body{margin:0;padding:0;}img{max-width:100%;display:block;}</style></head><body><img src="${dataUrl}" /></body></html>`,
+        );
+        win.document.close();
+        win.onload = () => {
+          win.print();
+        };
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
+  async function shareWhatsApp() {
+    if (!selectedCustomer) return;
+    setIsSharing(true);
+    try {
+      const message = buildShareMessage(selectedCustomer);
+      const phone = selectedCustomer.phone.replace(/\D/g, "");
+
+      // Try Web Share API with image file first
+      if (navigator.share) {
+        try {
+          const data = buildDrawData(selectedCustomer);
+          const canvas = await buildCombinedCanvas(selectedCustomer, data);
+          await new Promise<void>((resolve, reject) => {
+            canvas.toBlob(async (blob) => {
+              if (!blob) {
+                reject(new Error("no blob"));
+                return;
+              }
+              const file = new File(
+                [blob],
+                `${selectedCustomer!.username}_idcard.png`,
+                { type: "image/png" },
+              );
+              try {
+                await navigator.share({
+                  title: "আইডি কার্ড",
+                  text: message,
+                  files: [file],
+                });
+                resolve();
+              } catch {
+                reject(new Error("share failed"));
+              }
+            }, "image/png");
+          });
+          return;
+        } catch {
+          // Fall through to WhatsApp link
+        }
+      }
+
+      // Fallback: open WhatsApp with text
+      const waUrl = phone
+        ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, "_blank");
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
+  async function shareImo() {
+    if (!selectedCustomer) return;
+    const message = buildShareMessage(selectedCustomer);
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success("মেসেজ কপি হয়েছে, ইমোতে পেস্ট করুন");
+    } catch {
+      toast.error("ক্লিপবোর্ডে কপি করা যায়নি");
+    }
+  }
+
+  function shareSMS() {
+    if (!selectedCustomer) return;
+    const message = buildShareMessage(selectedCustomer);
+    const phone = selectedCustomer.phone.replace(/\D/g, "");
+    const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
+    window.open(smsUrl);
   }
 
   const pkg = selectedCustomer ? getPackage(selectedCustomer) : null;
@@ -808,6 +914,23 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
                     A4 একসাথে ডাউনলোড
                   </Button>
                 )}
+                {isAdmin && (
+                  <Button
+                    onClick={downloadPDF}
+                    disabled={isDownloading}
+                    size="sm"
+                    className="gap-1.5 font-semibold"
+                    style={{ background: "#c0392b", color: "#ffffff" }}
+                    data-ocid="idcard.pdf.button"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    PDF ডাউনলোড
+                  </Button>
+                )}
                 <Button
                   onClick={handlePrint}
                   size="sm"
@@ -831,6 +954,88 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
               />
               <NIDCardBack />
             </div>
+
+            {/* Share Section */}
+            <Card
+              className="border-border shadow-card"
+              data-ocid="idcard.share.card"
+            >
+              <CardHeader className="pb-3">
+                <CardTitle
+                  className="text-sm font-semibold flex items-center gap-2"
+                  style={{ color: "#0a2463" }}
+                >
+                  <Share2 className="w-4 h-4" />
+                  শেয়ার করুন
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  গ্রাহকের মোবাইল নম্বরে আইডি কার্ড ও রিচার্জ বার্তা পাঠান
+                </p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-3">
+                  {/* WhatsApp Button */}
+                  <Button
+                    onClick={shareWhatsApp}
+                    disabled={isSharing}
+                    size="sm"
+                    className="gap-2 font-semibold text-white"
+                    style={{ background: "#25D366", color: "#ffffff" }}
+                    data-ocid="idcard.whatsapp.button"
+                  >
+                    {isSharing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-4 h-4" />
+                    )}
+                    WhatsApp
+                  </Button>
+
+                  {/* Imo Button */}
+                  <Button
+                    onClick={shareImo}
+                    size="sm"
+                    className="gap-2 font-semibold text-white"
+                    style={{ background: "#4f46e5", color: "#ffffff" }}
+                    data-ocid="idcard.imo.button"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    ইমো (Imo)
+                  </Button>
+
+                  {/* SIM SMS Button */}
+                  <Button
+                    onClick={shareSMS}
+                    size="sm"
+                    className="gap-2 font-semibold text-white"
+                    style={{ background: "#0284c7", color: "#ffffff" }}
+                    data-ocid="idcard.sms.button"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    সিমে মেসেজ
+                  </Button>
+                </div>
+
+                {/* Message Preview */}
+                <div
+                  className="mt-4 p-3 rounded-lg text-xs text-muted-foreground"
+                  style={{
+                    background: "rgba(10,36,99,0.04)",
+                    border: "1px solid rgba(10,36,99,0.1)",
+                  }}
+                >
+                  <p
+                    className="font-semibold text-xs mb-1"
+                    style={{ color: "#0a2463" }}
+                  >
+                    বার্তার নমুনা:
+                  </p>
+                  <p className="leading-relaxed whitespace-pre-line">
+                    {buildShareMessage(selectedCustomer)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <div

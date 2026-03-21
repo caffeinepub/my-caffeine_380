@@ -8,6 +8,38 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const AdvanceRechargeDue = IDL.Record({
+  'id' : IDL.Text,
+  'userName' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'dueMonth' : IDL.Text,
+  'serial' : IDL.Nat,
+  'address' : IDL.Text,
+  'mobile' : IDL.Text,
+  'carnivalId' : IDL.Text,
+  'dueAmount' : IDL.Float64,
+});
+export const CommissionDue = IDL.Record({
+  'id' : IDL.Text,
+  'commissionSource' : IDL.Text,
+  'totalCommission' : IDL.Float64,
+  'paidCommission' : IDL.Float64,
+  'createdAt' : IDL.Int,
+  'dueMonth' : IDL.Text,
+  'serial' : IDL.Nat,
+  'outstandingCommission' : IDL.Float64,
+});
+export const ConnectionFeeDue = IDL.Record({
+  'id' : IDL.Text,
+  'userName' : IDL.Text,
+  'cidNumber' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'dueMonth' : IDL.Text,
+  'serial' : IDL.Nat,
+  'address' : IDL.Text,
+  'mobile' : IDL.Text,
+  'dueAmount' : IDL.Float64,
+});
 export const Expense = IDL.Record({
   'id' : IDL.Text,
   'date' : IDL.Text,
@@ -17,6 +49,31 @@ export const Expense = IDL.Record({
   'description' : IDL.Text,
   'serial' : IDL.Nat,
   'category' : IDL.Text,
+  'amount' : IDL.Float64,
+});
+export const TechnicianSalaryDue = IDL.Record({
+  'id' : IDL.Text,
+  'technicianName' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'dueMonth' : IDL.Text,
+  'serial' : IDL.Nat,
+  'totalDue' : IDL.Float64,
+  'dueAmount' : IDL.Float64,
+});
+export const WholesalerDue = IDL.Record({
+  'id' : IDL.Text,
+  'date' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'rate' : IDL.Float64,
+  'dueBill' : IDL.Float64,
+  'productName' : IDL.Text,
+  'serial' : IDL.Nat,
+  'paidBill' : IDL.Float64,
+  'totalAmount' : IDL.Float64,
+  'address' : IDL.Text,
+  'quantity' : IDL.Float64,
+  'mobile' : IDL.Text,
+  'wholesalerName' : IDL.Text,
   'amount' : IDL.Float64,
 });
 export const UserRole = IDL.Variant({
@@ -53,6 +110,10 @@ export const CustomerFinancialOverride = IDL.Record({
   'cidNumber' : IDL.Text,
   'connectionFeeDue' : IDL.Float64,
 });
+export const DebtSummary = IDL.Record({
+  'totalPayables' : IDL.Float64,
+  'totalReceivables' : IDL.Float64,
+});
 export const Node = IDL.Record({
   'id' : IDL.Nat,
   'status' : IDL.Text,
@@ -81,12 +142,29 @@ export const Payment = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdminAccount' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+  'addAdvanceRechargeDue' : IDL.Func([AdvanceRechargeDue], [], []),
+  'addCommissionDue' : IDL.Func([CommissionDue], [], []),
+  'addConnectionFeeDue' : IDL.Func([ConnectionFeeDue], [], []),
   'addExpense' : IDL.Func([Expense], [], []),
+  'addTechnicianSalaryDue' : IDL.Func([TechnicianSalaryDue], [], []),
+  'addWholesalerDue' : IDL.Func([WholesalerDue], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteAdvanceRechargeDue' : IDL.Func([IDL.Text], [], []),
+  'deleteCommissionDue' : IDL.Func([IDL.Text], [], []),
+  'deleteConnectionFeeDue' : IDL.Func([IDL.Text], [], []),
   'deleteExpense' : IDL.Func([IDL.Text], [], []),
+  'deleteTechnicianSalaryDue' : IDL.Func([IDL.Text], [], []),
+  'deleteWholesalerDue' : IDL.Func([IDL.Text], [], []),
   'getAdminAccounts' : IDL.Func([], [IDL.Vec(AdminAccount)], ['query']),
+  'getAdvanceRechargeDues' : IDL.Func(
+      [],
+      [IDL.Vec(AdvanceRechargeDue)],
+      ['query'],
+    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCommissionDues' : IDL.Func([], [IDL.Vec(CommissionDue)], ['query']),
+  'getConnectionFeeDues' : IDL.Func([], [IDL.Vec(ConnectionFeeDue)], ['query']),
   'getCustomer' : IDL.Func([IDL.Nat], [Customer], ['query']),
   'getCustomerFinancials' : IDL.Func(
       [],
@@ -94,6 +172,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+  'getDebtSummary' : IDL.Func([], [DebtSummary], ['query']),
   'getExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
   'getNode' : IDL.Func([IDL.Nat], [Node], ['query']),
   'getNodes' : IDL.Func([], [IDL.Vec(Node)], ['query']),
@@ -101,22 +180,65 @@ export const idlService = IDL.Service({
   'getPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
   'getPayment' : IDL.Func([IDL.Nat], [Payment], ['query']),
   'getPayments' : IDL.Func([], [IDL.Vec(Payment)], ['query']),
+  'getTechnicianSalaryDues' : IDL.Func(
+      [],
+      [IDL.Vec(TechnicianSalaryDue)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getWholesalerDues' : IDL.Func([], [IDL.Vec(WholesalerDue)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'loginAdminAccount' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], ['query']),
   'removeAdminAccount' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateAdvanceRechargeDue' : IDL.Func([AdvanceRechargeDue], [], []),
+  'updateCommissionDue' : IDL.Func([CommissionDue], [], []),
+  'updateConnectionFeeDue' : IDL.Func([ConnectionFeeDue], [], []),
   'updateCustomerFinancial' : IDL.Func([CustomerFinancialOverride], [], []),
   'updateExpense' : IDL.Func([Expense], [], []),
+  'updateTechnicianSalaryDue' : IDL.Func([TechnicianSalaryDue], [], []),
+  'updateWholesalerDue' : IDL.Func([WholesalerDue], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const AdvanceRechargeDue = IDL.Record({
+    'id' : IDL.Text,
+    'userName' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'dueMonth' : IDL.Text,
+    'serial' : IDL.Nat,
+    'address' : IDL.Text,
+    'mobile' : IDL.Text,
+    'carnivalId' : IDL.Text,
+    'dueAmount' : IDL.Float64,
+  });
+  const CommissionDue = IDL.Record({
+    'id' : IDL.Text,
+    'commissionSource' : IDL.Text,
+    'totalCommission' : IDL.Float64,
+    'paidCommission' : IDL.Float64,
+    'createdAt' : IDL.Int,
+    'dueMonth' : IDL.Text,
+    'serial' : IDL.Nat,
+    'outstandingCommission' : IDL.Float64,
+  });
+  const ConnectionFeeDue = IDL.Record({
+    'id' : IDL.Text,
+    'userName' : IDL.Text,
+    'cidNumber' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'dueMonth' : IDL.Text,
+    'serial' : IDL.Nat,
+    'address' : IDL.Text,
+    'mobile' : IDL.Text,
+    'dueAmount' : IDL.Float64,
+  });
   const Expense = IDL.Record({
     'id' : IDL.Text,
     'date' : IDL.Text,
@@ -126,6 +248,31 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'serial' : IDL.Nat,
     'category' : IDL.Text,
+    'amount' : IDL.Float64,
+  });
+  const TechnicianSalaryDue = IDL.Record({
+    'id' : IDL.Text,
+    'technicianName' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'dueMonth' : IDL.Text,
+    'serial' : IDL.Nat,
+    'totalDue' : IDL.Float64,
+    'dueAmount' : IDL.Float64,
+  });
+  const WholesalerDue = IDL.Record({
+    'id' : IDL.Text,
+    'date' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'rate' : IDL.Float64,
+    'dueBill' : IDL.Float64,
+    'productName' : IDL.Text,
+    'serial' : IDL.Nat,
+    'paidBill' : IDL.Float64,
+    'totalAmount' : IDL.Float64,
+    'address' : IDL.Text,
+    'quantity' : IDL.Float64,
+    'mobile' : IDL.Text,
+    'wholesalerName' : IDL.Text,
     'amount' : IDL.Float64,
   });
   const UserRole = IDL.Variant({
@@ -159,6 +306,10 @@ export const idlFactory = ({ IDL }) => {
     'cidNumber' : IDL.Text,
     'connectionFeeDue' : IDL.Float64,
   });
+  const DebtSummary = IDL.Record({
+    'totalPayables' : IDL.Float64,
+    'totalReceivables' : IDL.Float64,
+  });
   const Node = IDL.Record({
     'id' : IDL.Nat,
     'status' : IDL.Text,
@@ -187,12 +338,33 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdminAccount' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+    'addAdvanceRechargeDue' : IDL.Func([AdvanceRechargeDue], [], []),
+    'addCommissionDue' : IDL.Func([CommissionDue], [], []),
+    'addConnectionFeeDue' : IDL.Func([ConnectionFeeDue], [], []),
     'addExpense' : IDL.Func([Expense], [], []),
+    'addTechnicianSalaryDue' : IDL.Func([TechnicianSalaryDue], [], []),
+    'addWholesalerDue' : IDL.Func([WholesalerDue], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteAdvanceRechargeDue' : IDL.Func([IDL.Text], [], []),
+    'deleteCommissionDue' : IDL.Func([IDL.Text], [], []),
+    'deleteConnectionFeeDue' : IDL.Func([IDL.Text], [], []),
     'deleteExpense' : IDL.Func([IDL.Text], [], []),
+    'deleteTechnicianSalaryDue' : IDL.Func([IDL.Text], [], []),
+    'deleteWholesalerDue' : IDL.Func([IDL.Text], [], []),
     'getAdminAccounts' : IDL.Func([], [IDL.Vec(AdminAccount)], ['query']),
+    'getAdvanceRechargeDues' : IDL.Func(
+        [],
+        [IDL.Vec(AdvanceRechargeDue)],
+        ['query'],
+      ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCommissionDues' : IDL.Func([], [IDL.Vec(CommissionDue)], ['query']),
+    'getConnectionFeeDues' : IDL.Func(
+        [],
+        [IDL.Vec(ConnectionFeeDue)],
+        ['query'],
+      ),
     'getCustomer' : IDL.Func([IDL.Nat], [Customer], ['query']),
     'getCustomerFinancials' : IDL.Func(
         [],
@@ -200,6 +372,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+    'getDebtSummary' : IDL.Func([], [DebtSummary], ['query']),
     'getExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
     'getNode' : IDL.Func([IDL.Nat], [Node], ['query']),
     'getNodes' : IDL.Func([], [IDL.Vec(Node)], ['query']),
@@ -207,17 +380,28 @@ export const idlFactory = ({ IDL }) => {
     'getPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
     'getPayment' : IDL.Func([IDL.Nat], [Payment], ['query']),
     'getPayments' : IDL.Func([], [IDL.Vec(Payment)], ['query']),
+    'getTechnicianSalaryDues' : IDL.Func(
+        [],
+        [IDL.Vec(TechnicianSalaryDue)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'getWholesalerDues' : IDL.Func([], [IDL.Vec(WholesalerDue)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'loginAdminAccount' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], ['query']),
     'removeAdminAccount' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateAdvanceRechargeDue' : IDL.Func([AdvanceRechargeDue], [], []),
+    'updateCommissionDue' : IDL.Func([CommissionDue], [], []),
+    'updateConnectionFeeDue' : IDL.Func([ConnectionFeeDue], [], []),
     'updateCustomerFinancial' : IDL.Func([CustomerFinancialOverride], [], []),
     'updateExpense' : IDL.Func([Expense], [], []),
+    'updateTechnicianSalaryDue' : IDL.Func([TechnicianSalaryDue], [], []),
+    'updateWholesalerDue' : IDL.Func([WholesalerDue], [], []),
   });
 };
 

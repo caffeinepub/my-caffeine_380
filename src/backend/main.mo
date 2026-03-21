@@ -10,6 +10,8 @@ import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
+
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -94,13 +96,353 @@ actor {
     name : Text;
   };
 
-  let userProfiles = Map.empty<Principal, UserProfile>();
+  ///////////////////////////////////////////////////////////////////////////
+  //                      *** New Debt Management ***                     //
+  ///////////////////////////////////////////////////////////////////////////
+
+  type ConnectionFeeDue = {
+    id : Text;
+    serial : Nat;
+    cidNumber : Text;
+    userName : Text;
+    mobile : Text;
+    address : Text;
+    dueMonth : Text;
+    dueAmount : Float;
+    createdAt : Int;
+  };
+
+  type CommissionDue = {
+    id : Text;
+    serial : Nat;
+    commissionSource : Text; // Always "Delta Software and Communication Limited"
+    dueMonth : Text;
+    totalCommission : Float;
+    paidCommission : Float;
+    outstandingCommission : Float;
+    createdAt : Int;
+  };
+
+  type TechnicianSalaryDue = {
+    id : Text;
+    serial : Nat;
+    technicianName : Text;
+    dueMonth : Text;
+    dueAmount : Float;
+    totalDue : Float;
+    createdAt : Int;
+  };
+
+  type WholesalerDue = {
+    id : Text;
+    serial : Nat;
+    wholesalerName : Text;
+    mobile : Text;
+    address : Text;
+    productName : Text;
+    quantity : Float;
+    rate : Float;
+    amount : Float;
+    totalAmount : Float;
+    paidBill : Float;
+    dueBill : Float;
+    date : Text;
+    createdAt : Int;
+  };
+
+  type AdvanceRechargeDue = {
+    id : Text;
+    serial : Nat;
+    carnivalId : Text;
+    userName : Text;
+    mobile : Text;
+    address : Text;
+    dueMonth : Text;
+    dueAmount : Float;
+    createdAt : Int;
+  };
+
+  type DebtSummary = {
+    totalReceivables : Float;
+    totalPayables : Float;
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  //                   *** Stable Storage Section ***                      //
+  ///////////////////////////////////////////////////////////////////////////
+  var stableExpenses : [(Text, Expense)] = [];
   let expenses = Map.empty<Text, Expense>();
+
+  var stableCustomerFinancials : [(Text, CustomerFinancialOverride)] = [];
   let customerFinancials = Map.empty<Text, CustomerFinancialOverride>();
 
+  var stableAdminCredentials : [(Text, AdminCredential)] = [];
+  let adminCredentials = Map.empty<Text, AdminCredential>();
+
+  var stableConnectionFeeDues : [(Text, ConnectionFeeDue)] = [];
+  let connectionFeeDues = Map.empty<Text, ConnectionFeeDue>();
+
+  var stableCommissionDues : [(Text, CommissionDue)] = [];
+  let commissionDues = Map.empty<Text, CommissionDue>();
+
+  var stableTechnicianSalaryDues : [(Text, TechnicianSalaryDue)] = [];
+  let technicianSalaryDues = Map.empty<Text, TechnicianSalaryDue>();
+
+  var stableWholesalerDues : [(Text, WholesalerDue)] = [];
+  let wholesalerDues = Map.empty<Text, WholesalerDue>();
+
+  var stableAdvanceRechargeDues : [(Text, AdvanceRechargeDue)] = [];
+  let advanceRechargeDues = Map.empty<Text, AdvanceRechargeDue>();
+
+  // -------- User Profiles (Non-stable) ------------------------------
+  let userProfiles = Map.empty<Principal, UserProfile>();
+
+  ///////////////////////////////////////////////////////////////////////////
+  //                           *** DEBT API ***                            //
+  ///////////////////////////////////////////////////////////////////////////
+
+  //////////////////////////// Connection Fee Dues /////////////////////////
+
+  public shared ({ caller }) func addConnectionFeeDue(record : ConnectionFeeDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add connection fee dues");
+    };
+    if (record.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("ConnectionFeeDue id cannot be empty");
+    };
+    connectionFeeDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func updateConnectionFeeDue(record : ConnectionFeeDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update connection fee dues");
+    };
+    if (not connectionFeeDues.containsKey(record.id)) {
+      Runtime.trap("ConnectionFeeDue not found");
+    };
+    connectionFeeDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func deleteConnectionFeeDue(id : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete connection fee dues");
+    };
+    if (not connectionFeeDues.containsKey(id)) {
+      Runtime.trap("ConnectionFeeDue not found");
+    };
+    connectionFeeDues.remove(id);
+  };
+
+  public query ({ caller }) func getConnectionFeeDues() : async [ConnectionFeeDue] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view connection fee dues");
+    };
+    connectionFeeDues.values().toArray();
+  };
+
+  //////////////////////////// Commission Dues /////////////////////////
+
+  public shared ({ caller }) func addCommissionDue(record : CommissionDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add commission dues");
+    };
+    if (record.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("CommissionDue id cannot be empty");
+    };
+    commissionDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func updateCommissionDue(record : CommissionDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update commission dues");
+    };
+    if (not commissionDues.containsKey(record.id)) {
+      Runtime.trap("CommissionDue not found");
+    };
+    commissionDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func deleteCommissionDue(id : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete commission dues");
+    };
+    if (not commissionDues.containsKey(id)) {
+      Runtime.trap("CommissionDue not found");
+    };
+    commissionDues.remove(id);
+  };
+
+  public query ({ caller }) func getCommissionDues() : async [CommissionDue] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view commission dues");
+    };
+    commissionDues.values().toArray();
+  };
+
+  //////////////////////////// Technician Salary Dues /////////////////////////
+
+  public shared ({ caller }) func addTechnicianSalaryDue(record : TechnicianSalaryDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add technician salary dues");
+    };
+    if (record.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("TechnicianSalaryDue id cannot be empty");
+    };
+    technicianSalaryDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func updateTechnicianSalaryDue(record : TechnicianSalaryDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update technician salary dues");
+    };
+    if (not technicianSalaryDues.containsKey(record.id)) {
+      Runtime.trap("TechnicianSalaryDue not found");
+    };
+    technicianSalaryDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func deleteTechnicianSalaryDue(id : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete technician salary dues");
+    };
+    if (not technicianSalaryDues.containsKey(id)) {
+      Runtime.trap("TechnicianSalaryDue not found");
+    };
+    technicianSalaryDues.remove(id);
+  };
+
+  public query ({ caller }) func getTechnicianSalaryDues() : async [TechnicianSalaryDue] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view technician salary dues");
+    };
+    technicianSalaryDues.values().toArray();
+  };
+
+  //////////////////////////// Wholesaler Dues /////////////////////////
+
+  public shared ({ caller }) func addWholesalerDue(record : WholesalerDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add wholesaler dues");
+    };
+    if (record.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("WholesalerDue id cannot be empty");
+    };
+    wholesalerDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func updateWholesalerDue(record : WholesalerDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update wholesaler dues");
+    };
+    if (not wholesalerDues.containsKey(record.id)) {
+      Runtime.trap("WholesalerDue not found");
+    };
+    wholesalerDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func deleteWholesalerDue(id : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete wholesaler dues");
+    };
+    if (not wholesalerDues.containsKey(id)) {
+      Runtime.trap("WholesalerDue not found");
+    };
+    wholesalerDues.remove(id);
+  };
+
+  public query ({ caller }) func getWholesalerDues() : async [WholesalerDue] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view wholesaler dues");
+    };
+    wholesalerDues.values().toArray();
+  };
+
+  //////////////////////////// Advance Recharge Dues /////////////////////////
+
+  public shared ({ caller }) func addAdvanceRechargeDue(record : AdvanceRechargeDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add advance recharge dues");
+    };
+    if (record.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("AdvanceRechargeDue id cannot be empty");
+    };
+    advanceRechargeDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func updateAdvanceRechargeDue(record : AdvanceRechargeDue) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update advance recharge dues");
+    };
+    if (not advanceRechargeDues.containsKey(record.id)) {
+      Runtime.trap("AdvanceRechargeDue not found");
+    };
+    advanceRechargeDues.add(record.id, record);
+  };
+
+  public shared ({ caller }) func deleteAdvanceRechargeDue(id : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete advance recharge dues");
+    };
+    if (not advanceRechargeDues.containsKey(id)) {
+      Runtime.trap("AdvanceRechargeDue not found");
+    };
+    advanceRechargeDues.remove(id);
+  };
+
+  public query ({ caller }) func getAdvanceRechargeDues() : async [AdvanceRechargeDue] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view advance recharge dues");
+    };
+    advanceRechargeDues.values().toArray();
+  };
+
+  //////////////////////////// Debt Summary /////////////////////////
+
+  public query ({ caller }) func getDebtSummary() : async DebtSummary {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view debt summary");
+    };
+
+    var totalReceivables : Float = 0.0;
+    var totalPayables : Float = 0.0;
+
+    // Calculate Connection Fee Dues (Receivables)
+    for ((_, due) in connectionFeeDues.entries()) {
+      totalReceivables += due.dueAmount;
+    };
+
+    // Calculate Outstanding Commissions (Receivables)
+    for ((_, due) in commissionDues.entries()) {
+      totalReceivables += due.outstandingCommission;
+    };
+
+    // Calculate Technician Salary Dues (Payables)
+    for ((_, due) in technicianSalaryDues.entries()) {
+      totalPayables += due.totalDue;
+    };
+
+    // Calculate Wholesaler Dues (Payables)
+    for ((_, due) in wholesalerDues.entries()) {
+      totalPayables += due.dueBill;
+    };
+
+    // Calculate Advance Recharge Dues (Payables)
+    for ((_, due) in advanceRechargeDues.entries()) {
+      totalPayables += due.dueAmount;
+    };
+
+    {
+      totalReceivables;
+      totalPayables;
+    };
+  };
+
+  ///////////////////////////////////////////////////////////////////////////
+  //                     *** Main App Features ***                         //
+  ///////////////////////////////////////////////////////////////////////////
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.getUserRole(accessControlState, caller) == #user)) {
-      Runtime.trap("Unauthorized: Only regular users can access their own profile");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access their own profile");
     };
     userProfiles.get(caller);
   };
@@ -113,8 +455,8 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.getUserRole(accessControlState, caller) == #user)) {
-      Runtime.trap("Unauthorized: Only regular users can save their own profile");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save their own profile");
     };
     if (profile.name.trim(#char ' ').size() == 0) {
       Runtime.trap("Name cannot be empty");
@@ -191,8 +533,9 @@ actor {
     (3, { id = 3; name = "Zone 3"; location = "Sultangonj"; status = "Active"; connectedCustomers = 2 }),
   ]);
 
-  let adminCredentials = Map.empty<Text, AdminCredential>();
-
+  ///////////////////////////////////////////////////////////////////////////
+  //                     *** MAIN API ***                                  //
+  ///////////////////////////////////////////////////////////////////////////
   // Expense Management
 
   public shared ({ caller }) func addExpense(expense : Expense) : async () {
@@ -321,7 +664,9 @@ actor {
     };
   };
 
-  // Admin Credentials Management
+  ///////////////////////////////////////////////////////////////////////////
+  //                     *** ADMIN CREDENTIALS ***                        //
+  ///////////////////////////////////////////////////////////////////////////
 
   // Only Internet Identity super admin can create email/password admin accounts
   public shared ({ caller }) func addAdminAccount(email : Text, password : Text, name : Text) : async () {
@@ -388,3 +733,4 @@ actor {
     adminCredentials.remove(email);
   };
 };
+

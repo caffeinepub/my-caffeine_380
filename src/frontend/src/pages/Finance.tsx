@@ -33,6 +33,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { VILLAGES } from "../data/sampleData";
+import { useActor } from "../hooks/useActor";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useCustomerFinancials } from "../hooks/useCustomerFinancials";
 import { useExpenses } from "../hooks/useExpenses";
@@ -125,6 +126,7 @@ export default function Finance({ isAdmin = false }: FinanceProps) {
     loading: expensesLoading,
   } = useExpenses();
   const { financials, saveFinancial } = useCustomerFinancials();
+  const { actor } = useActor();
   const financialsApplied = useRef(false);
 
   // Apply backend financials to customers once on load
@@ -262,9 +264,59 @@ export default function Finance({ isAdmin = false }: FinanceProps) {
     if (editForm.cidNumber) {
       saveFinancial(editForm.cidNumber, cashFee, dueFee);
     }
+    // Sync connectionFeeDue to DebtManagement ConnectionFeeDue records
+    if (actor && editForm.cidNumber) {
+      try {
+        const allDues = await actor.getConnectionFeeDues();
+        const existing = allDues.find(
+          (d: { cidNumber: string }) => d.cidNumber === editForm.cidNumber,
+        );
+        if (dueFee > 0) {
+          const record = {
+            id: existing?.id ?? crypto.randomUUID(),
+            serial: existing?.serial ?? BigInt(allDues.length + 1),
+            cidNumber: editForm.cidNumber,
+            userName: editForm.username || editingCustomer.username || "",
+            mobile: editForm.phone || editingCustomer.phone || "",
+            address: editForm.village || editingCustomer.village || "",
+            dueMonth: existing?.dueMonth ?? getCurrentBanglaMonth(),
+            dueAmount: dueFee,
+            createdAt: existing?.createdAt ?? BigInt(Date.now()),
+          };
+          if (existing) {
+            await actor.updateConnectionFeeDue(record);
+          } else {
+            await actor.addConnectionFeeDue(record);
+          }
+        } else if (dueFee === 0 && existing) {
+          await actor.deleteConnectionFeeDue(existing.id);
+        }
+      } catch {
+        // ignore sync errors silently
+      }
+    }
     setSaving(false);
     setEditOpen(false);
     toast.success("গ্রাহকের তথ্য আপডেট করা হয়েছে");
+  }
+
+  function getCurrentBanglaMonth(): string {
+    const now = new Date();
+    const banglaMonths = [
+      "জানুয়ারি",
+      "ফেব্রুয়ারি",
+      "মার্চ",
+      "এপ্রিল",
+      "মে",
+      "জুন",
+      "জুলাই",
+      "আগস্ট",
+      "সেপ্টেম্বর",
+      "অক্টোবর",
+      "নভেম্বর",
+      "ডিসেম্বর",
+    ];
+    return `${banglaMonths[now.getMonth()]} ${now.getFullYear()}`;
   }
 
   // --- Expense helpers ---

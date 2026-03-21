@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  ArrowLeftRight,
   Bell,
   Cable,
   ChevronDown,
@@ -31,6 +32,7 @@ type Page =
   | "dashboard"
   | "customers"
   | "finance"
+  | "debts"
   | "network"
   | "settings"
   | "notice"
@@ -52,6 +54,7 @@ const navItems = [
   { id: "dashboard" as Page, label: "ড্যাশবোর্ড", icon: LayoutDashboard },
   { id: "customers" as Page, label: "গ্রাহক ব্যবস্থাপনা", icon: Users },
   { id: "finance" as Page, label: "আর্থিক ব্যবস্থাপনা", icon: Wallet },
+  { id: "debts" as Page, label: "দেনা-পাওনা", icon: ArrowLeftRight },
   { id: "notice" as Page, label: "নোটিশ বোর্ড", icon: Megaphone },
   { id: "network" as Page, label: "অপ্টিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
   { id: "call" as Page, label: "কল সেন্টার", icon: Phone },
