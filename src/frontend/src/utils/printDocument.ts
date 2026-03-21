@@ -6,15 +6,8 @@ export function printDocument(
   settings: CompanySettings,
 ): void {
   const logoHTML = settings.logo
-    ? `<img src="${settings.logo}" style="width:80px;height:80px;object-fit:contain;" alt="logo" />`
-    : `<div style="width:80px;height:80px;background:#e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;">📡</div>`;
-
-  const contactLine = [
-    settings.email && `ইমেইল: ${settings.email}`,
-    settings.whatsapp && `WhatsApp: ${settings.whatsapp}`,
-  ]
-    .filter(Boolean)
-    .join("  |  ");
+    ? `<img src="${settings.logo}" style="width:90px;height:90px;object-fit:contain;border-radius:6px;" alt="logo" />`
+    : `<div style="width:90px;height:90px;background:#e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;">📡</div>`;
 
   const html = `<!DOCTYPE html>
 <html lang="bn">
@@ -34,40 +27,65 @@ export function printDocument(
   }
   .page-header {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 16px 24px 12px;
-    border-bottom: 2px solid #1e3a5f;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 28px 14px;
+    border-bottom: 3px solid #1e3a5f;
+    margin-bottom: 18px;
+    background: #f8fafc;
   }
   .header-logo { flex-shrink: 0; }
   .header-info { flex: 1; }
   .header-info .org-name {
-    font-size: 18pt;
+    font-size: 20pt;
     font-weight: 700;
     color: #1e3a5f;
     line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+  .header-info .org-sub {
+    font-size: 9.5pt;
+    color: #4a6fa5;
+    margin-top: 1px;
+    font-weight: 600;
   }
   .header-info .org-address {
-    font-size: 10pt;
-    color: #444;
-    margin-top: 2px;
-  }
-  .header-info .org-contact {
-    font-size: 9pt;
-    color: #666;
+    font-size: 9.5pt;
+    color: #555;
     margin-top: 4px;
+  }
+  .header-info .org-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+  .header-info .contact-item {
+    font-size: 9pt;
+    color: #1e3a5f;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .header-divider {
+    height: 4px;
+    background: linear-gradient(90deg, #1e3a5f 0%, #c9a227 50%, #1e3a5f 100%);
+    margin-bottom: 4px;
   }
   .doc-title {
     text-align: center;
     font-size: 13pt;
     font-weight: 700;
-    margin: 0 24px 14px;
-    padding: 6px;
-    background: #f0f4f8;
+    margin: 0 28px 16px;
+    padding: 8px 16px;
+    background: #1e3a5f;
+    color: #fff;
     border-radius: 4px;
+    letter-spacing: 0.5px;
   }
-  .content { padding: 0 24px 24px; }
+  .content { padding: 0 28px 28px; }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -76,14 +94,15 @@ export function printDocument(
   th {
     background: #1e3a5f;
     color: #fff;
-    padding: 7px 8px;
+    padding: 8px 9px;
     text-align: left;
-    font-weight: 600;
+    font-weight: 700;
     white-space: nowrap;
+    border: 1px solid #16305a;
   }
   td {
-    padding: 6px 8px;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 6px 9px;
+    border: 1px solid #e2e8f0;
     vertical-align: top;
   }
   tr:nth-child(even) td { background: #f8fafc; }
@@ -91,34 +110,48 @@ export function printDocument(
     font-weight: 700;
     border-top: 2px solid #1e3a5f;
     background: #eef2f7;
+    color: #1e3a5f;
+  }
+  .print-footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #888;
+    margin: 20px 28px 0;
+    padding-top: 10px;
+    border-top: 1px solid #e2e8f0;
   }
   @media print {
-    @page { size: A4 portrait; margin: 12mm; }
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: 215.9mm 330.2mm portrait; margin: 10mm 12mm; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     .page-header { page-break-inside: avoid; }
   }
 </style>
 </head>
 <body>
+  <div class="header-divider"></div>
   <div class="page-header">
     <div class="header-logo">${logoHTML}</div>
     <div class="header-info">
       <div class="org-name">${settings.name}</div>
-      ${settings.address ? `<div class="org-address">${settings.address}</div>` : ""}
-      ${contactLine ? `<div class="org-contact">${contactLine}</div>` : ""}
+      ${settings.address ? `<div class="org-address">📍 ${settings.address}</div>` : ""}
+      <div class="org-contact-row">
+        ${settings.email ? `<span class="contact-item">✉ ${settings.email}</span>` : ""}
+        ${settings.whatsapp ? `<span class="contact-item">📱 WhatsApp: ${settings.whatsapp}</span>` : ""}
+      </div>
     </div>
   </div>
   <div class="doc-title">${title}</div>
   <div class="content">${bodyHTML}</div>
+  <div class="print-footer">মুদ্রণের তারিখ: ${new Date().toLocaleDateString("bn-BD", { year: "numeric", month: "long", day: "numeric" })}</div>
 </body>
 </html>`;
 
-  const win = window.open("", "_blank", "width=900,height=700");
+  const win = window.open("", "_blank", "width=950,height=800");
   if (!win) return;
   win.document.write(html);
   win.document.close();
   setTimeout(() => {
     win.focus();
     win.print();
-  }, 800);
+  }, 900);
 }

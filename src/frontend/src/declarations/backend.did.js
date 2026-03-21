@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const Expense = IDL.Record({
+  'id' : IDL.Text,
+  'date' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'rate' : IDL.Float64,
+  'unit' : IDL.Text,
+  'description' : IDL.Text,
+  'serial' : IDL.Nat,
+  'category' : IDL.Text,
+  'amount' : IDL.Float64,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -37,6 +48,11 @@ export const Customer = IDL.Record({
   'packageId' : IDL.Nat,
   'dueAmount' : IDL.Float64,
 });
+export const CustomerFinancialOverride = IDL.Record({
+  'connectionFeeCash' : IDL.Float64,
+  'cidNumber' : IDL.Text,
+  'connectionFeeDue' : IDL.Float64,
+});
 export const Node = IDL.Record({
   'id' : IDL.Nat,
   'status' : IDL.Text,
@@ -65,12 +81,20 @@ export const Payment = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdminAccount' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+  'addExpense' : IDL.Func([Expense], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteExpense' : IDL.Func([IDL.Text], [], []),
   'getAdminAccounts' : IDL.Func([], [IDL.Vec(AdminAccount)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomer' : IDL.Func([IDL.Nat], [Customer], ['query']),
+  'getCustomerFinancials' : IDL.Func(
+      [],
+      [IDL.Vec(CustomerFinancialOverride)],
+      ['query'],
+    ),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+  'getExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
   'getNode' : IDL.Func([IDL.Nat], [Node], ['query']),
   'getNodes' : IDL.Func([], [IDL.Vec(Node)], ['query']),
   'getPackage' : IDL.Func([IDL.Nat], [Package], ['query']),
@@ -86,11 +110,24 @@ export const idlService = IDL.Service({
   'loginAdminAccount' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], ['query']),
   'removeAdminAccount' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateCustomerFinancial' : IDL.Func([CustomerFinancialOverride], [], []),
+  'updateExpense' : IDL.Func([Expense], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const Expense = IDL.Record({
+    'id' : IDL.Text,
+    'date' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'rate' : IDL.Float64,
+    'unit' : IDL.Text,
+    'description' : IDL.Text,
+    'serial' : IDL.Nat,
+    'category' : IDL.Text,
+    'amount' : IDL.Float64,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -116,6 +153,11 @@ export const idlFactory = ({ IDL }) => {
     'monthlyFee' : IDL.Float64,
     'packageId' : IDL.Nat,
     'dueAmount' : IDL.Float64,
+  });
+  const CustomerFinancialOverride = IDL.Record({
+    'connectionFeeCash' : IDL.Float64,
+    'cidNumber' : IDL.Text,
+    'connectionFeeDue' : IDL.Float64,
   });
   const Node = IDL.Record({
     'id' : IDL.Nat,
@@ -145,12 +187,20 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdminAccount' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+    'addExpense' : IDL.Func([Expense], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteExpense' : IDL.Func([IDL.Text], [], []),
     'getAdminAccounts' : IDL.Func([], [IDL.Vec(AdminAccount)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomer' : IDL.Func([IDL.Nat], [Customer], ['query']),
+    'getCustomerFinancials' : IDL.Func(
+        [],
+        [IDL.Vec(CustomerFinancialOverride)],
+        ['query'],
+      ),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+    'getExpenses' : IDL.Func([], [IDL.Vec(Expense)], ['query']),
     'getNode' : IDL.Func([IDL.Nat], [Node], ['query']),
     'getNodes' : IDL.Func([], [IDL.Vec(Node)], ['query']),
     'getPackage' : IDL.Func([IDL.Nat], [Package], ['query']),
@@ -166,6 +216,8 @@ export const idlFactory = ({ IDL }) => {
     'loginAdminAccount' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], ['query']),
     'removeAdminAccount' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateCustomerFinancial' : IDL.Func([CustomerFinancialOverride], [], []),
+    'updateExpense' : IDL.Func([Expense], [], []),
   });
 };
 

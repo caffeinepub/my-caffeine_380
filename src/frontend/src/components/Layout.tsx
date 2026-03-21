@@ -13,6 +13,7 @@ import {
   ChevronDown,
   CreditCard,
   LayoutDashboard,
+  LogIn,
   LogOut,
   Megaphone,
   Menu,
@@ -41,8 +42,10 @@ interface LayoutProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
   isSuperAdmin: boolean;
+  isAdmin: boolean;
   adminName: string | null;
   onLogout: () => void;
+  onLoginRequest?: () => void;
 }
 
 const navItems = [
@@ -50,7 +53,7 @@ const navItems = [
   { id: "customers" as Page, label: "গ্রাহক ব্যবস্থাপনা", icon: Users },
   { id: "finance" as Page, label: "আর্থিক ব্যবস্থাপনা", icon: Wallet },
   { id: "notice" as Page, label: "নোটিশ বোর্ড", icon: Megaphone },
-  { id: "network" as Page, label: "অপটিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
+  { id: "network" as Page, label: "অপ্টিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
   { id: "call" as Page, label: "কল সেন্টার", icon: Phone },
   { id: "idcard" as Page, label: "আইডি কার্ড", icon: CreditCard },
   { id: "settings" as Page, label: "সেটিংস", icon: Settings },
@@ -61,8 +64,10 @@ export default function Layout({
   currentPage,
   onNavigate,
   isSuperAdmin,
+  isAdmin,
   adminName,
   onLogout,
+  onLoginRequest,
 }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { identity } = useInternetIdentity();
@@ -78,9 +83,11 @@ export default function Layout({
     ? identity
       ? `${identity.getPrincipal().toString().slice(0, 8)}...`
       : "সুপার এডমিন"
-    : (adminName ?? "এডমিন");
+    : isAdmin
+      ? (adminName ?? "এডমিন")
+      : "গেস্ট";
 
-  const roleLabel = isSuperAdmin ? "সুপার এডমিন" : "এডমিন";
+  const roleLabel = isSuperAdmin ? "সুপার এডমিন" : isAdmin ? "এডমিন" : "রিড ওনলি";
 
   function handleNavigate(page: Page) {
     onNavigate(page);
@@ -175,7 +182,7 @@ export default function Layout({
           >
             <Avatar className="h-7 w-7">
               <AvatarFallback className="text-xs bg-primary text-white">
-                {isSuperAdmin ? <Shield size={12} /> : "এ"}
+                {isSuperAdmin ? <Shield size={12} /> : isAdmin ? "এ" : "গ"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -220,43 +227,56 @@ export default function Layout({
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-2 px-2"
-                  data-ocid="header.user.dropdown"
-                >
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-xs bg-primary text-white">
-                      {isSuperAdmin ? <Shield size={12} /> : "এ"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start">
-                    <span className="text-xs font-medium leading-none">
-                      {displayName}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] px-1 py-0 mt-0.5 h-4"
-                    >
-                      {roleLabel}
-                    </Badge>
-                  </div>
-                  <ChevronDown size={14} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={onLogout}
-                  data-ocid="header.logout.button"
-                >
-                  <LogOut size={14} className="mr-2" />
-                  লগআউট
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isAdmin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-2 px-2"
+                    data-ocid="header.user.dropdown"
+                  >
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-xs bg-primary text-white">
+                        {isSuperAdmin ? <Shield size={12} /> : "এ"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs font-medium leading-none">
+                        {displayName}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1 py-0 mt-0.5 h-4"
+                      >
+                        {roleLabel}
+                      </Badge>
+                    </div>
+                    <ChevronDown size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={onLogout}
+                    data-ocid="header.logout.button"
+                  >
+                    <LogOut size={14} className="mr-2" />
+                    লগআউট
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onLoginRequest}
+                data-ocid="header.login.button"
+                className="gap-1.5"
+              >
+                <LogIn size={14} />
+                লগইন করুন
+              </Button>
+            )}
           </div>
         </header>
 

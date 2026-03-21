@@ -24,6 +24,22 @@ export interface Customer {
   'packageId' : bigint,
   'dueAmount' : number,
 }
+export interface CustomerFinancialOverride {
+  'connectionFeeCash' : number,
+  'cidNumber' : string,
+  'connectionFeeDue' : number,
+}
+export interface Expense {
+  'id' : string,
+  'date' : string,
+  'createdAt' : bigint,
+  'rate' : number,
+  'unit' : string,
+  'description' : string,
+  'serial' : bigint,
+  'category' : string,
+  'amount' : number,
+}
 export interface Node {
   'id' : bigint,
   'status' : string,
@@ -59,12 +75,16 @@ export type UserRole = { 'admin' : null } |
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdminAccount' : ActorMethod<[string, string, string], undefined>,
+  'addExpense' : ActorMethod<[Expense], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'deleteExpense' : ActorMethod<[string], undefined>,
   'getAdminAccounts' : ActorMethod<[], Array<AdminAccount>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomer' : ActorMethod<[bigint], Customer>,
+  'getCustomerFinancials' : ActorMethod<[], Array<CustomerFinancialOverride>>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
+  'getExpenses' : ActorMethod<[], Array<Expense>>,
   'getNode' : ActorMethod<[bigint], Node>,
   'getNodes' : ActorMethod<[], Array<Node>>,
   'getPackage' : ActorMethod<[bigint], Package>,
@@ -76,6 +96,11 @@ export interface _SERVICE {
   'loginAdminAccount' : ActorMethod<[string, string], string>,
   'removeAdminAccount' : ActorMethod<[string], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateCustomerFinancial' : ActorMethod<
+    [CustomerFinancialOverride],
+    undefined
+  >,
+  'updateExpense' : ActorMethod<[Expense], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

@@ -7,6 +7,24 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface CustomerFinancialOverride {
+    connectionFeeCash: number;
+    cidNumber: string;
+    connectionFeeDue: number;
+}
+export interface Customer {
+    id: bigint;
+    status: ServiceStatus;
+    area: string;
+    name: string;
+    email: string;
+    connectionDate: Time;
+    address: string;
+    phone: string;
+    monthlyFee: number;
+    packageId: bigint;
+    dueAmount: number;
+}
 export type Time = bigint;
 export interface AdminAccount {
     name: string;
@@ -39,18 +57,16 @@ export interface Package {
 export interface UserProfile {
     name: string;
 }
-export interface Customer {
-    id: bigint;
-    status: ServiceStatus;
-    area: string;
-    name: string;
-    email: string;
-    connectionDate: Time;
-    address: string;
-    phone: string;
-    monthlyFee: number;
-    packageId: bigint;
-    dueAmount: number;
+export interface Expense {
+    id: string;
+    date: string;
+    createdAt: bigint;
+    rate: number;
+    unit: string;
+    description: string;
+    serial: bigint;
+    category: string;
+    amount: number;
 }
 export enum ServiceStatus {
     active = "active",
@@ -64,12 +80,16 @@ export enum UserRole {
 }
 export interface backendInterface {
     addAdminAccount(email: string, password: string, name: string): Promise<void>;
+    addExpense(expense: Expense): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    deleteExpense(expenseId: string): Promise<void>;
     getAdminAccounts(): Promise<Array<AdminAccount>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomer(id: bigint): Promise<Customer>;
+    getCustomerFinancials(): Promise<Array<CustomerFinancialOverride>>;
     getCustomers(): Promise<Array<Customer>>;
+    getExpenses(): Promise<Array<Expense>>;
     getNode(id: bigint): Promise<Node>;
     getNodes(): Promise<Array<Node>>;
     getPackage(id: bigint): Promise<Package>;
@@ -81,4 +101,6 @@ export interface backendInterface {
     loginAdminAccount(email: string, password: string): Promise<string>;
     removeAdminAccount(email: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateCustomerFinancial(override: CustomerFinancialOverride): Promise<void>;
+    updateExpense(expense: Expense): Promise<void>;
 }

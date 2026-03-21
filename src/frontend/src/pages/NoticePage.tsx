@@ -84,7 +84,10 @@ function normalizeVillage(v: string): string {
   return v;
 }
 
-export default function NoticePage() {
+interface NoticePageProps {
+  isAdmin?: boolean;
+}
+export default function NoticePage({ isAdmin = false }: NoticePageProps) {
   const { customers } = useLocalCustomers();
   const { settings } = useCompanySettings();
 
@@ -455,36 +458,42 @@ export default function NoticePage() {
                       <td className="py-3 px-4">
                         <div className="flex gap-1.5 flex-wrap">
                           {/* WhatsApp */}
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white h-7 px-2.5 text-xs"
-                            onClick={() => openWhatsApp(c.phone)}
-                            data-ocid={`notice.whatsapp.button.${i + 1}`}
-                          >
-                            <MessageCircle size={12} className="mr-1" />
-                            WhatsApp
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white h-7 px-2.5 text-xs"
+                              onClick={() => openWhatsApp(c.phone)}
+                              data-ocid={`notice.whatsapp.button.${i + 1}`}
+                            >
+                              <MessageCircle size={12} className="mr-1" />
+                              WhatsApp
+                            </Button>
+                          )}
                           {/* IMO */}
-                          <Button
-                            size="sm"
-                            className="bg-blue-500 hover:bg-blue-600 text-white h-7 px-2.5 text-xs"
-                            onClick={() => openIMO(c.phone)}
-                            data-ocid={`notice.imo.button.${i + 1}`}
-                          >
-                            <MessageCircle size={12} className="mr-1" />
-                            IMO
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              className="bg-blue-500 hover:bg-blue-600 text-white h-7 px-2.5 text-xs"
+                              onClick={() => openIMO(c.phone)}
+                              data-ocid={`notice.imo.button.${i + 1}`}
+                            >
+                              <MessageCircle size={12} className="mr-1" />
+                              IMO
+                            </Button>
+                          )}
                           {/* SMS */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2.5 text-xs border-orange-400 text-orange-600 hover:bg-orange-50"
-                            onClick={() => openSMS(c.phone)}
-                            data-ocid={`notice.sms.button.${i + 1}`}
-                          >
-                            <Phone size={12} className="mr-1" />
-                            SMS
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-xs border-orange-400 text-orange-600 hover:bg-orange-50"
+                              onClick={() => openSMS(c.phone)}
+                              data-ocid={`notice.sms.button.${i + 1}`}
+                            >
+                              <Phone size={12} className="mr-1" />
+                              SMS
+                            </Button>
+                          )}
                           {/* Copy */}
                           <Button
                             variant="outline"

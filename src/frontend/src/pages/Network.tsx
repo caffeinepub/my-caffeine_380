@@ -152,7 +152,10 @@ function toggleItem(arr: string[], item: string): string[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
-export default function Network() {
+interface NetworkProps {
+  isAdmin?: boolean;
+}
+export default function Network({ isAdmin = false }: NetworkProps) {
   const [entries, setEntries] = useState<FiberEntry[]>(loadEntries);
   const [paras, setParas] = useState<Record<string, string[]>>(loadParas);
   const [modalOpen, setModalOpen] = useState(false);
@@ -315,14 +318,16 @@ export default function Network() {
               <CardTitle className="text-base font-semibold">
                 অপটিক্যাল ফাইবার তালিকা
               </CardTitle>
-              <Button
-                className="bg-primary text-white"
-                size="sm"
-                onClick={openAdd}
-              >
-                <Plus size={15} className="mr-1.5" />
-                নতুন এন্ট্রি
-              </Button>
+              {isAdmin && (
+                <Button
+                  className="bg-primary text-white"
+                  size="sm"
+                  onClick={openAdd}
+                >
+                  <Plus size={15} className="mr-1.5" />
+                  নতুন এন্ট্রি
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -430,22 +435,26 @@ export default function Network() {
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={() => openEdit(e)}
-                            >
-                              <Pencil size={12} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                              onClick={() => handleDelete(e.id)}
-                            >
-                              <Trash2 size={12} />
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openEdit(e)}
+                              >
+                                <Pencil size={12} />
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                onClick={() => handleDelete(e.id)}
+                              >
+                                <Trash2 size={12} />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -4,12 +4,11 @@ import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Order "mo:core/Order";
 import Int "mo:core/Int";
+import Nat "mo:core/Nat";
 import Text "mo:core/Text";
 import Principal "mo:core/Principal";
-import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
-
+import MixinAuthorization "authorization/MixinAuthorization";
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -72,30 +71,53 @@ actor {
     name : Text;
   };
 
+  type Expense = {
+    id : Text;
+    serial : Nat;
+    category : Text;
+    description : Text;
+    unit : Text;
+    rate : Float;
+    amount : Float;
+    date : Text;
+    createdAt : Int;
+  };
+
+  type CustomerFinancialOverride = {
+    cidNumber : Text;
+    connectionFeeCash : Float;
+    connectionFeeDue : Float;
+  };
+
   type AdminAccount = {
     email : Text;
     name : Text;
   };
 
   let userProfiles = Map.empty<Principal, UserProfile>();
+  let expenses = Map.empty<Text, Expense>();
+  let customerFinancials = Map.empty<Text, CustomerFinancialOverride>();
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access profiles");
+    if (not (AccessControl.getUserRole(accessControlState, caller) == #user)) {
+      Runtime.trap("Unauthorized: Only regular users can access their own profile");
     };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
+      Runtime.trap("Unauthorized: Only admins can access other users' profiles");
     };
     userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
+    if (not (AccessControl.getUserRole(accessControlState, caller) == #user)) {
+      Runtime.trap("Unauthorized: Only regular users can save their own profile");
+    };
+    if (profile.name.trim(#char ' ').size() == 0) {
+      Runtime.trap("Name cannot be empty");
     };
     userProfiles.add(caller, profile);
   };
@@ -125,10 +147,11 @@ actor {
   };
 
   let packages = Map.fromArray<Nat, Package>([
-    (1, { id = 1; name = "10 Mbps"; speed = "10 Mbps"; monthlyPrice = 500.0; description = "Basic package" }),
-    (2, { id = 2; name = "20 Mbps"; speed = "20 Mbps"; monthlyPrice = 800.0; description = "Standard package" }),
-    (3, { id = 3; name = "50 Mbps"; speed = "50 Mbps"; monthlyPrice = 1200.0; description = "Premium package" }),
-    (4, { id = 4; name = "100 Mbps"; speed = "100 Mbps"; monthlyPrice = 2000.0; description = "Business package" }),
+    (1, { id = 1; name = "20 Mbps"; speed = "20 Mbps"; monthlyPrice = 525.0; description = "20 Mbps প্যাকেজ" }),
+    (2, { id = 2; name = "30 Mbps"; speed = "30 Mbps"; monthlyPrice = 630.0; description = "30 Mbps প্যাকেজ" }),
+    (3, { id = 3; name = "40 Mbps"; speed = "40 Mbps"; monthlyPrice = 735.0; description = "40 Mbps প্যাকেজ" }),
+    (4, { id = 4; name = "50 Mbps"; speed = "50 Mbps"; monthlyPrice = 840.0; description = "50 Mbps প্যাকেজ" }),
+    (5, { id = 5; name = "60 Mbps"; speed = "60 Mbps"; monthlyPrice = 1050.0; description = "60 Mbps প্যাকেজ" }),
   ]);
 
   let customers = Map.fromArray<Nat, Customer>([
@@ -170,6 +193,64 @@ actor {
 
   let adminCredentials = Map.empty<Text, AdminCredential>();
 
+  // Expense Management
+
+  public shared ({ caller }) func addExpense(expense : Expense) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can add expenses");
+    };
+    if (expense.id.trim(#char ' ').size() == 0) {
+      Runtime.trap("Expense id cannot be empty");
+    };
+    expenses.add(expense.id, expense);
+  };
+
+  public shared ({ caller }) func updateExpense(expense : Expense) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update expenses");
+    };
+    if (not expenses.containsKey(expense.id)) {
+      Runtime.trap("Expense not found");
+    };
+    expenses.add(expense.id, expense);
+  };
+
+  public shared ({ caller }) func deleteExpense(expenseId : Text) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete expenses");
+    };
+    if (not expenses.containsKey(expenseId)) {
+      Runtime.trap("Expense not found");
+    };
+    expenses.remove(expenseId);
+  };
+
+  public query ({ caller }) func getExpenses() : async [Expense] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view expenses");
+    };
+    expenses.values().toArray();
+  };
+
+  // Customer Financials Management
+
+  public shared ({ caller }) func updateCustomerFinancial(override : CustomerFinancialOverride) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update customer financials");
+    };
+    if (override.cidNumber.trim(#char ' ').size() == 0) {
+      Runtime.trap("CID number cannot be empty");
+    };
+    customerFinancials.add(override.cidNumber, override);
+  };
+
+  public query ({ caller }) func getCustomerFinancials() : async [CustomerFinancialOverride] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view customer financials");
+    };
+    customerFinancials.values().toArray();
+  };
+
   // Packages can be viewed by anyone (public information for potential customers)
   public query func getPackages() : async [Package] {
     packages.values().toArray().sort();
@@ -177,7 +258,7 @@ actor {
 
   // Customer data contains PII and financial info - admin only
   public query ({ caller }) func getCustomers() : async [Customer] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view customer data");
     };
     customers.values().toArray().sort();
@@ -185,7 +266,7 @@ actor {
 
   // Payment records are sensitive financial data - admin only
   public query ({ caller }) func getPayments() : async [Payment] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view payment records");
     };
     payments.values().toArray().sort();
@@ -193,7 +274,7 @@ actor {
 
   // Network infrastructure information - admin only
   public query ({ caller }) func getNodes() : async [Node] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view network nodes");
     };
     nodes.values().toArray().sort();
@@ -201,7 +282,7 @@ actor {
 
   // Individual customer data - admin only
   public query ({ caller }) func getCustomer(id : Nat) : async Customer {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view customer data");
     };
     switch (customers.get(id)) {
@@ -220,7 +301,7 @@ actor {
 
   // Individual payment record - admin only
   public query ({ caller }) func getPayment(id : Nat) : async Payment {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view payment records");
     };
     switch (payments.get(id)) {
@@ -231,7 +312,7 @@ actor {
 
   // Individual node information - admin only
   public query ({ caller }) func getNode(id : Nat) : async Node {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view network nodes");
     };
     switch (nodes.get(id)) {

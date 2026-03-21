@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Layout from "./components/Layout";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import CallCenter from "./pages/CallCenter";
@@ -47,12 +47,24 @@ function AppContent() {
   const [adminSession, setAdminSession] = useState<AdminSession | null>(
     getStoredAdminSession,
   );
+  const [showLogin, setShowLogin] = useState(false);
 
   const isSuperAdmin = !!identity;
   const isLoggedIn = isSuperAdmin || !!adminSession;
+  const isAdmin = isLoggedIn;
+
+  // Register service worker for PWA
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  }, []);
 
   function handleAdminLogin(session: AdminSession) {
     setAdminSession(session);
+    setShowLogin(false);
   }
 
   function handleLogout() {
@@ -74,30 +86,35 @@ function AppContent() {
     );
   }
 
-  if (!isLoggedIn) {
-    return <LoginPage onAdminLogin={handleAdminLogin} />;
+  if (showLogin && !isLoggedIn) {
+    return (
+      <LoginPage
+        onAdminLogin={handleAdminLogin}
+        onCancel={() => setShowLogin(false)}
+      />
+    );
   }
 
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard isAdmin={isAdmin} />;
       case "customers":
-        return <Customers />;
+        return <Customers isAdmin={isAdmin} />;
       case "finance":
-        return <Finance />;
+        return <Finance isAdmin={isAdmin} />;
       case "notice":
-        return <NoticePage />;
+        return <NoticePage isAdmin={isAdmin} />;
       case "network":
-        return <Network />;
+        return <Network isAdmin={isAdmin} />;
       case "call":
         return <CallCenter />;
       case "idcard":
-        return <IdCard />;
+        return <IdCard isAdmin={isAdmin} />;
       case "settings":
-        return <Settings isSuperAdmin={isSuperAdmin} />;
+        return <Settings isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} />;
       default:
-        return <Dashboard />;
+        return <Dashboard isAdmin={isAdmin} />;
     }
   };
 
@@ -106,8 +123,10 @@ function AppContent() {
       currentPage={currentPage}
       onNavigate={setCurrentPage}
       isSuperAdmin={isSuperAdmin}
+      isAdmin={isAdmin}
       adminName={adminSession?.name ?? null}
       onLogout={isSuperAdmin ? () => clear() : handleLogout}
+      onLoginRequest={() => setShowLogin(true)}
     >
       {renderPage()}
       <footer className="mt-8 pb-2 text-center text-xs text-muted-foreground">

@@ -89,6 +89,24 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface CustomerFinancialOverride {
+    connectionFeeCash: number;
+    cidNumber: string;
+    connectionFeeDue: number;
+}
+export interface Customer {
+    id: bigint;
+    status: ServiceStatus;
+    area: string;
+    name: string;
+    email: string;
+    connectionDate: Time;
+    address: string;
+    phone: string;
+    monthlyFee: number;
+    packageId: bigint;
+    dueAmount: number;
+}
 export type Time = bigint;
 export interface AdminAccount {
     name: string;
@@ -121,18 +139,16 @@ export interface Package {
 export interface UserProfile {
     name: string;
 }
-export interface Customer {
-    id: bigint;
-    status: ServiceStatus;
-    area: string;
-    name: string;
-    email: string;
-    connectionDate: Time;
-    address: string;
-    phone: string;
-    monthlyFee: number;
-    packageId: bigint;
-    dueAmount: number;
+export interface Expense {
+    id: string;
+    date: string;
+    createdAt: bigint;
+    rate: number;
+    unit: string;
+    description: string;
+    serial: bigint;
+    category: string;
+    amount: number;
 }
 export enum ServiceStatus {
     active = "active",
@@ -147,12 +163,16 @@ export enum UserRole {
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addAdminAccount(email: string, password: string, name: string): Promise<void>;
+    addExpense(expense: Expense): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    deleteExpense(expenseId: string): Promise<void>;
     getAdminAccounts(): Promise<Array<AdminAccount>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomer(id: bigint): Promise<Customer>;
+    getCustomerFinancials(): Promise<Array<CustomerFinancialOverride>>;
     getCustomers(): Promise<Array<Customer>>;
+    getExpenses(): Promise<Array<Expense>>;
     getNode(id: bigint): Promise<Node>;
     getNodes(): Promise<Array<Node>>;
     getPackage(id: bigint): Promise<Package>;
@@ -164,6 +184,8 @@ export interface backendInterface {
     loginAdminAccount(email: string, password: string): Promise<string>;
     removeAdminAccount(email: string): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateCustomerFinancial(override: CustomerFinancialOverride): Promise<void>;
+    updateExpense(expense: Expense): Promise<void>;
 }
 import type { Customer as _Customer, ServiceStatus as _ServiceStatus, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -196,6 +218,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async addExpense(arg0: Expense): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addExpense(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addExpense(arg0);
+            return result;
+        }
+    }
     async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
         if (this.processError) {
             try {
@@ -207,6 +243,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n1(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async deleteExpense(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteExpense(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteExpense(arg0);
             return result;
         }
     }
@@ -266,6 +316,20 @@ export class Backend implements backendInterface {
             return from_candid_Customer_n6(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getCustomerFinancials(): Promise<Array<CustomerFinancialOverride>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCustomerFinancials();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCustomerFinancials();
+            return result;
+        }
+    }
     async getCustomers(): Promise<Array<Customer>> {
         if (this.processError) {
             try {
@@ -278,6 +342,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCustomers();
             return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getExpenses(): Promise<Array<Expense>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getExpenses();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getExpenses();
+            return result;
         }
     }
     async getNode(arg0: bigint): Promise<Node> {
@@ -431,6 +509,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
+    async updateCustomerFinancial(arg0: CustomerFinancialOverride): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCustomerFinancial(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCustomerFinancial(arg0);
+            return result;
+        }
+    }
+    async updateExpense(arg0: Expense): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateExpense(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateExpense(arg0);
             return result;
         }
     }

@@ -173,7 +173,10 @@ function parseBulkText(text: string): BulkRow[] {
   });
 }
 
-export default function Customers() {
+interface CustomersProps {
+  isAdmin?: boolean;
+}
+export default function Customers({ isAdmin = false }: CustomersProps) {
   const {
     customers: rawLocalCustomers,
     addCustomers,
@@ -467,31 +470,37 @@ export default function Customers() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExportPDF}
-            data-ocid="customers.export_pdf.button"
-          >
-            <FileDown size={16} className="mr-1.5" />
-            PDF এক্সপোর্ট
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setBulkOpen(true)}
-            data-ocid="customers.bulk_import.button"
-            className="border-primary/40 text-primary hover:bg-primary/10"
-          >
-            <Upload size={16} className="mr-1.5" />
-            বাল্ক ইমপোর্ট
-          </Button>
-          <Button
-            onClick={openAdd}
-            className="bg-primary text-white"
-            data-ocid="customers.add_button"
-          >
-            <Plus size={16} className="mr-1.5" />
-            নতুন গ্রাহক
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              data-ocid="customers.export_pdf.button"
+            >
+              <FileDown size={16} className="mr-1.5" />
+              PDF এক্সপোর্ট
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkOpen(true)}
+              data-ocid="customers.bulk_import.button"
+              className="border-primary/40 text-primary hover:bg-primary/10"
+            >
+              <Upload size={16} className="mr-1.5" />
+              বাল্ক ইমপোর্ট
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              onClick={openAdd}
+              className="bg-primary text-white"
+              data-ocid="customers.add_button"
+            >
+              <Plus size={16} className="mr-1.5" />
+              নতুন গ্রাহক
+            </Button>
+          )}
         </div>
       </div>
 
@@ -588,24 +597,28 @@ export default function Customers() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => openEdit(c)}
-                            data-ocid={`customers.edit_button.${i + 1}`}
-                          >
-                            <Pencil size={13} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(c)}
-                            data-ocid={`customers.delete_button.${i + 1}`}
-                          >
-                            <Trash2 size={13} />
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEdit(c)}
+                              data-ocid={`customers.edit_button.${i + 1}`}
+                            >
+                              <Pencil size={13} />
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(c)}
+                              data-ocid={`customers.delete_button.${i + 1}`}
+                            >
+                              <Trash2 size={13} />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -760,7 +773,18 @@ export default function Customers() {
               <Label className="text-xs">প্যাকেজ</Label>
               <Select
                 value={form.packageId}
-                onValueChange={(v) => setForm((p) => ({ ...p, packageId: v }))}
+                onValueChange={(v) => {
+                  const selectedPkg = allPackages.find(
+                    (p) => p.id.toString() === v,
+                  );
+                  setForm((p) => ({
+                    ...p,
+                    packageId: v,
+                    monthlyFee: selectedPkg
+                      ? selectedPkg.monthlyPrice.toString()
+                      : p.monthlyFee,
+                  }));
+                }}
               >
                 <SelectTrigger data-ocid="customers.package.select">
                   <SelectValue placeholder="প্যাকেজ নির্বাচন" />

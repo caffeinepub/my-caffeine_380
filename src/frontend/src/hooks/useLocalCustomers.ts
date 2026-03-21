@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { ServiceStatus } from "../backend";
 import { normalizeAddress, toTitleCase } from "../data/addressNormalization";
+import { getPackageIdByFee } from "../data/permanentPackages";
 import type { ExtendedCustomer } from "../types/extended";
 
-// Bump version to force re-seed with corrected names/addresses
-const KEY = "nosheen_customers_v4";
+// Bump version to force re-seed with updated connection dates
+const KEY = "nosheen_customers_v6";
 
 function serialize(c: ExtendedCustomer): object {
   return {
@@ -50,7 +51,7 @@ const RAW_SEED: RawRow[] = [
     "277465",
     "Baligaw Islampara",
     840,
-    "2026-03-08",
+    "2025-10-07",
   ],
   [
     2,
@@ -61,7 +62,7 @@ const RAW_SEED: RawRow[] = [
     "277466",
     "Baligoun Shuhagpur",
     600,
-    "2026-03-06",
+    "2025-10-06",
   ],
   [
     3,
@@ -72,7 +73,7 @@ const RAW_SEED: RawRow[] = [
     "277467",
     "Baligoun Islampara",
     600,
-    "2026-03-07",
+    "2025-10-06",
   ],
   [
     4,
@@ -83,7 +84,7 @@ const RAW_SEED: RawRow[] = [
     "277468",
     "Baligoun Islampara",
     600,
-    "2026-03-08",
+    "2025-10-07",
   ],
   [
     5,
@@ -94,7 +95,7 @@ const RAW_SEED: RawRow[] = [
     "277469",
     "Baligoun Islampara",
     600,
-    "2026-03-08",
+    "2025-10-07",
   ],
   [
     6,
@@ -105,7 +106,7 @@ const RAW_SEED: RawRow[] = [
     "277470",
     "Baligoun Islampara",
     600,
-    "2026-03-11",
+    "2025-10-07",
   ],
   [
     7,
@@ -116,7 +117,7 @@ const RAW_SEED: RawRow[] = [
     "277471",
     "Baligoun Islampara",
     600,
-    "2026-03-09",
+    "2025-10-07",
   ],
   [
     8,
@@ -127,7 +128,7 @@ const RAW_SEED: RawRow[] = [
     "277472",
     "Baligoun Islampara",
     600,
-    "2026-03-19",
+    "2025-10-07",
   ],
   [
     9,
@@ -138,7 +139,7 @@ const RAW_SEED: RawRow[] = [
     "277473",
     "Baligoun Mosjidhati",
     600,
-    "2026-04-07",
+    "2025-10-07",
   ],
   [
     10,
@@ -149,7 +150,7 @@ const RAW_SEED: RawRow[] = [
     "277474",
     "Baligoun Nayahati Dokkhin Para",
     600,
-    "2026-03-12",
+    "2025-10-08",
   ],
   [
     11,
@@ -160,7 +161,7 @@ const RAW_SEED: RawRow[] = [
     "277475",
     "Baligoun memberhati",
     600,
-    "2026-04-11",
+    "2025-10-10",
   ],
   [
     12,
@@ -171,7 +172,7 @@ const RAW_SEED: RawRow[] = [
     "277476",
     "Baligoun memberhati",
     600,
-    "2025-11-11",
+    "2025-10-10",
   ],
   [
     13,
@@ -182,7 +183,7 @@ const RAW_SEED: RawRow[] = [
     "277477",
     "Baliguon Pocimati",
     600,
-    "2026-03-12",
+    "2025-10-11",
   ],
   [
     14,
@@ -193,7 +194,7 @@ const RAW_SEED: RawRow[] = [
     "277478",
     "Baligoun Noyahati Moddopara",
     600,
-    "2026-03-12",
+    "2025-10-12",
   ],
   [
     15,
@@ -204,7 +205,7 @@ const RAW_SEED: RawRow[] = [
     "277479",
     "Baligoun Uttorpara",
     600,
-    "2026-03-14",
+    "2025-10-12",
   ],
   [
     16,
@@ -215,7 +216,7 @@ const RAW_SEED: RawRow[] = [
     "277480",
     "Faridpur poshcimhati",
     600,
-    "2026-03-13",
+    "2025-10-13",
   ],
   [
     17,
@@ -226,7 +227,7 @@ const RAW_SEED: RawRow[] = [
     "277481",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-14",
+    "2025-10-14",
   ],
   [
     18,
@@ -237,7 +238,7 @@ const RAW_SEED: RawRow[] = [
     "277482",
     "Foridpur Purbuhati",
     600,
-    "2026-03-15",
+    "2025-10-14",
   ],
   [
     19,
@@ -248,7 +249,7 @@ const RAW_SEED: RawRow[] = [
     "277483",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-15",
+    "2025-10-14",
   ],
   [
     20,
@@ -259,7 +260,7 @@ const RAW_SEED: RawRow[] = [
     "277484",
     "Foridpur Purbo Hati",
     600,
-    "2026-03-16",
+    "2025-10-14",
   ],
   [
     21,
@@ -270,7 +271,7 @@ const RAW_SEED: RawRow[] = [
     "277485",
     "Foridpur Purbuhati Hati",
     600,
-    "2026-03-14",
+    "2025-10-14",
   ],
   [
     22,
@@ -281,7 +282,7 @@ const RAW_SEED: RawRow[] = [
     "277486",
     "Baligoun Aglavita",
     600,
-    "2026-03-15",
+    "2025-10-15",
   ],
   [
     23,
@@ -292,7 +293,7 @@ const RAW_SEED: RawRow[] = [
     "277487",
     "Baligoun Pocimhati",
     600,
-    "2026-03-21",
+    "2025-10-18",
   ],
   [
     24,
@@ -303,7 +304,7 @@ const RAW_SEED: RawRow[] = [
     "277488",
     "Baligoun Islampara",
     600,
-    "2026-03-18",
+    "2025-10-18",
   ],
   [
     25,
@@ -314,7 +315,7 @@ const RAW_SEED: RawRow[] = [
     "277489",
     "Baligoun Islampara",
     600,
-    "2026-03-23",
+    "2025-10-23",
   ],
   [
     26,
@@ -325,7 +326,7 @@ const RAW_SEED: RawRow[] = [
     "277490",
     "Faridpur Mayez Hati",
     600,
-    "2026-03-25",
+    "2025-10-24",
   ],
   [
     27,
@@ -336,7 +337,7 @@ const RAW_SEED: RawRow[] = [
     "277491",
     "Baligaon Noyahati Uttorpara",
     700,
-    "2026-03-27",
+    "2025-10-25",
   ],
   [
     28,
@@ -347,7 +348,7 @@ const RAW_SEED: RawRow[] = [
     "277492",
     "Baligoun Poschim Hati",
     600,
-    "2026-03-10",
+    "2025-10-26",
   ],
   [
     29,
@@ -358,7 +359,7 @@ const RAW_SEED: RawRow[] = [
     "277493",
     "Kathaiya",
     600,
-    "2026-03-07",
+    "2025-10-28",
   ],
   [
     30,
@@ -369,7 +370,7 @@ const RAW_SEED: RawRow[] = [
     "277494",
     "Baligoun Purbuhati",
     600,
-    "2026-04-01",
+    "2025-11-01",
   ],
   [
     31,
@@ -380,7 +381,7 @@ const RAW_SEED: RawRow[] = [
     "277495",
     "Faridpur Aglahati",
     600,
-    "2026-04-02",
+    "2025-11-01",
   ],
   [
     32,
@@ -391,7 +392,7 @@ const RAW_SEED: RawRow[] = [
     "277496",
     "NAYAHATI MODDYOPARA BALIGAW",
     600,
-    "2026-03-08",
+    "2025-11-08",
   ],
   [
     33,
@@ -402,7 +403,7 @@ const RAW_SEED: RawRow[] = [
     "277497",
     "Baligoun Pocimhati",
     600,
-    "2026-03-18",
+    "2025-11-09",
   ],
   [
     34,
@@ -413,7 +414,7 @@ const RAW_SEED: RawRow[] = [
     "277498",
     "Kathaiya Pocimhati",
     600,
-    "2026-03-12",
+    "2025-11-10",
   ],
   [
     35,
@@ -424,7 +425,7 @@ const RAW_SEED: RawRow[] = [
     "277499",
     "Kataia Borobari",
     600,
-    "2026-03-11",
+    "2025-11-10",
   ],
   [
     36,
@@ -435,7 +436,7 @@ const RAW_SEED: RawRow[] = [
     "277500",
     "Kataia Pocimhati",
     600,
-    "2026-03-11",
+    "2025-11-10",
   ],
   [
     37,
@@ -446,7 +447,7 @@ const RAW_SEED: RawRow[] = [
     "277501",
     "Baligoun Pocimhati",
     600,
-    "2026-03-12",
+    "2025-11-11",
   ],
   [
     38,
@@ -457,7 +458,7 @@ const RAW_SEED: RawRow[] = [
     "277502",
     "AGLA HATI FARIDPUR",
     600,
-    "2026-03-11",
+    "2025-11-11",
   ],
   [
     39,
@@ -468,7 +469,7 @@ const RAW_SEED: RawRow[] = [
     "277503",
     "Kathaiya Pocimhati",
     600,
-    "2026-03-11",
+    "2025-11-11",
   ],
   [
     40,
@@ -479,7 +480,7 @@ const RAW_SEED: RawRow[] = [
     "277504",
     "NAYAHATI MODDO PARA BALIGAW",
     600,
-    "2026-03-13",
+    "2025-11-13",
   ],
   [
     41,
@@ -490,7 +491,7 @@ const RAW_SEED: RawRow[] = [
     "277505",
     "Kataia Borobari",
     600,
-    "2026-03-15",
+    "2025-11-15",
   ],
   [
     42,
@@ -501,7 +502,7 @@ const RAW_SEED: RawRow[] = [
     "277506",
     "Kataia Sonabali Bari",
     600,
-    "2026-03-15",
+    "2025-11-15",
   ],
   [
     43,
@@ -512,7 +513,7 @@ const RAW_SEED: RawRow[] = [
     "277507",
     "NAYAHATI MODDO PARA BALIGAW",
     600,
-    "2026-03-19",
+    "2025-11-19",
   ],
   [
     44,
@@ -523,7 +524,7 @@ const RAW_SEED: RawRow[] = [
     "277508",
     "ISLAM PARA BALIGAW",
     600,
-    "2026-04-03",
+    "2025-11-19",
   ],
   [
     45,
@@ -534,7 +535,7 @@ const RAW_SEED: RawRow[] = [
     "277509",
     "Kataia Sonabali Bari",
     600,
-    "2026-03-22",
+    "2025-11-21",
   ],
   [
     46,
@@ -545,7 +546,7 @@ const RAW_SEED: RawRow[] = [
     "277510",
     "Kataia Sonabali Bari",
     600,
-    "2026-03-25",
+    "2025-11-22",
   ],
   [
     47,
@@ -556,7 +557,7 @@ const RAW_SEED: RawRow[] = [
     "277511",
     "Baligoun Islampara",
     600,
-    "2026-03-27",
+    "2025-11-23",
   ],
   [
     48,
@@ -567,7 +568,7 @@ const RAW_SEED: RawRow[] = [
     "277512",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-28",
+    "2025-11-28",
   ],
   [
     49,
@@ -578,7 +579,7 @@ const RAW_SEED: RawRow[] = [
     "277513",
     "Baligoun Omrahati",
     600,
-    "2026-04-02",
+    "2025-12-01",
   ],
   [
     50,
@@ -589,7 +590,7 @@ const RAW_SEED: RawRow[] = [
     "277514",
     "Baligoun Purbohati",
     600,
-    "2026-03-12",
+    "2025-12-02",
   ],
   [
     51,
@@ -600,7 +601,7 @@ const RAW_SEED: RawRow[] = [
     "277515",
     "Baligoun Pocimhati",
     600,
-    "2026-04-04",
+    "2025-12-04",
   ],
   [
     52,
@@ -611,7 +612,7 @@ const RAW_SEED: RawRow[] = [
     "277516",
     "Kataia Borobari",
     600,
-    "2026-04-06",
+    "2025-12-05",
   ],
   [
     53,
@@ -622,7 +623,7 @@ const RAW_SEED: RawRow[] = [
     "277517",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-08",
+    "2025-12-05",
   ],
   [
     54,
@@ -633,7 +634,7 @@ const RAW_SEED: RawRow[] = [
     "277518",
     "Baligoun Shohagpur",
     600,
-    "2026-03-12",
+    "2025-12-11",
   ],
   [
     55,
@@ -644,7 +645,7 @@ const RAW_SEED: RawRow[] = [
     "277519",
     "Baligoun Jojo Pagla",
     600,
-    "2026-03-12",
+    "2025-12-12",
   ],
   [
     56,
@@ -655,7 +656,7 @@ const RAW_SEED: RawRow[] = [
     "277520",
     "Baligaon Membarhati",
     525,
-    "2026-03-12",
+    "2025-12-12",
   ],
   [
     57,
@@ -666,7 +667,7 @@ const RAW_SEED: RawRow[] = [
     "277521",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-15",
+    "2025-12-12",
   ],
   [
     58,
@@ -677,7 +678,7 @@ const RAW_SEED: RawRow[] = [
     "277522",
     "BALIGAON PURBUHATI",
     600,
-    "2026-04-02",
+    "2025-12-12",
   ],
   [
     59,
@@ -688,7 +689,7 @@ const RAW_SEED: RawRow[] = [
     "277523",
     "Baligoun Omrahati",
     600,
-    "2026-03-13",
+    "2025-12-13",
   ],
   [
     60,
@@ -699,7 +700,7 @@ const RAW_SEED: RawRow[] = [
     "277524",
     "Baligoun Shohagpur",
     600,
-    "2026-04-02",
+    "2025-12-14",
   ],
   [
     61,
@@ -710,7 +711,7 @@ const RAW_SEED: RawRow[] = [
     "277525",
     "Kataia Moshjid hati",
     699,
-    "2026-03-16",
+    "2025-12-15",
   ],
   [
     62,
@@ -721,7 +722,7 @@ const RAW_SEED: RawRow[] = [
     "277526",
     "Baligoun Shohagpur",
     600,
-    "2026-03-18",
+    "2025-12-16",
   ],
   [
     63,
@@ -732,7 +733,7 @@ const RAW_SEED: RawRow[] = [
     "277527",
     "Baligoun Purbohati",
     600,
-    "2026-03-16",
+    "2025-12-16",
   ],
   [
     64,
@@ -743,7 +744,7 @@ const RAW_SEED: RawRow[] = [
     "277528",
     "Baligoun Jojopagla",
     600,
-    "2026-03-18",
+    "2025-12-17",
   ],
   [
     65,
@@ -754,7 +755,7 @@ const RAW_SEED: RawRow[] = [
     "277529",
     "Baligoun Nayahati Dokkhin Para",
     600,
-    "2026-03-19",
+    "2025-12-18",
   ],
   [
     66,
@@ -765,7 +766,7 @@ const RAW_SEED: RawRow[] = [
     "277530",
     "Baligoun Poscimhati",
     600,
-    "2026-02-21",
+    "2025-12-19",
   ],
   [
     67,
@@ -776,7 +777,7 @@ const RAW_SEED: RawRow[] = [
     "277531",
     "Kataia Pocimhati",
     600,
-    "2026-03-21",
+    "2025-12-21",
   ],
   [
     68,
@@ -787,7 +788,7 @@ const RAW_SEED: RawRow[] = [
     "277532",
     "Foridpur Pochimhati",
     600,
-    "2026-03-22",
+    "2025-12-22",
   ],
   [
     69,
@@ -798,7 +799,7 @@ const RAW_SEED: RawRow[] = [
     "277533",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-26",
+    "2025-12-26",
   ],
   [
     70,
@@ -809,7 +810,7 @@ const RAW_SEED: RawRow[] = [
     "277534",
     "Kataia Pocimhati",
     600,
-    "2026-04-01",
+    "2025-12-31",
   ],
   [
     71,
@@ -820,7 +821,7 @@ const RAW_SEED: RawRow[] = [
     "277535",
     "Foridpur Purbuhati",
     600,
-    "2026-04-01",
+    "2025-12-31",
   ],
   [
     72,
@@ -831,7 +832,7 @@ const RAW_SEED: RawRow[] = [
     "277536",
     "Foridpur Purbuhati",
     600,
-    "2026-04-01",
+    "2025-12-31",
   ],
   [
     73,
@@ -842,7 +843,7 @@ const RAW_SEED: RawRow[] = [
     "277537",
     "Baligoun Purbuhati",
     600,
-    "2026-04-02",
+    "2026-01-02",
   ],
   [
     74,
@@ -853,7 +854,7 @@ const RAW_SEED: RawRow[] = [
     "277538",
     "Katia Sonabali",
     600,
-    "2026-04-02",
+    "2026-01-02",
   ],
   [
     75,
@@ -864,7 +865,7 @@ const RAW_SEED: RawRow[] = [
     "277539",
     "Kataia Sonabali Bari",
     600,
-    "2026-04-04",
+    "2026-01-03",
   ],
   [
     76,
@@ -875,7 +876,7 @@ const RAW_SEED: RawRow[] = [
     "277540",
     "Kataia Pocimhati",
     600,
-    "2026-04-04",
+    "2026-01-03",
   ],
   [
     77,
@@ -886,7 +887,7 @@ const RAW_SEED: RawRow[] = [
     "277541",
     "Kataia Pocimhati",
     600,
-    "2026-04-04",
+    "2026-01-03",
   ],
   [
     78,
@@ -897,7 +898,7 @@ const RAW_SEED: RawRow[] = [
     "277542",
     "Baligoun Memberhati",
     600,
-    "2026-03-10",
+    "2026-01-06",
   ],
   [
     79,
@@ -908,7 +909,7 @@ const RAW_SEED: RawRow[] = [
     "277543",
     "Baligoun Omrahati",
     600,
-    "2026-02-06",
+    "2026-01-06",
   ],
   [
     80,
@@ -919,7 +920,7 @@ const RAW_SEED: RawRow[] = [
     "277544",
     "Baligoun Memberhati",
     600,
-    "2026-03-07",
+    "2026-01-07",
   ],
   [
     81,
@@ -930,7 +931,7 @@ const RAW_SEED: RawRow[] = [
     "277545",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-12",
+    "2026-01-11",
   ],
   [
     82,
@@ -941,7 +942,7 @@ const RAW_SEED: RawRow[] = [
     "277546",
     "Foridpur Porbo Hati",
     600,
-    "2026-03-17",
+    "2026-01-17",
   ],
   [
     83,
@@ -952,7 +953,7 @@ const RAW_SEED: RawRow[] = [
     "277547",
     "Foridpur Purbohati Hati",
     600,
-    "2026-03-27",
+    "2026-01-27",
   ],
   [
     84,
@@ -963,7 +964,7 @@ const RAW_SEED: RawRow[] = [
     "277548",
     "Foridpur Purbuhati",
     600,
-    "2026-03-27",
+    "2026-01-27",
   ],
   [
     85,
@@ -974,7 +975,7 @@ const RAW_SEED: RawRow[] = [
     "277549",
     "Foridpur Mayez Hati",
     600,
-    "2026-03-28",
+    "2026-01-31",
   ],
   [
     86,
@@ -985,7 +986,7 @@ const RAW_SEED: RawRow[] = [
     "277550",
     "Foridpur Pochimhati",
     600,
-    "2026-04-06",
+    "2026-02-06",
   ],
   [
     87,
@@ -996,7 +997,7 @@ const RAW_SEED: RawRow[] = [
     "277551",
     "Pocim Bajuka Bajar",
     600,
-    "2026-03-07",
+    "2026-02-07",
   ],
   [
     88,
@@ -1007,7 +1008,7 @@ const RAW_SEED: RawRow[] = [
     "277552",
     "Pocim Bajuka Noyabari",
     600,
-    "2026-03-07",
+    "2026-02-07",
   ],
   [
     89,
@@ -1018,7 +1019,7 @@ const RAW_SEED: RawRow[] = [
     "277553",
     "Pocim Bajuka Noyabari",
     600,
-    "2026-03-08",
+    "2026-02-08",
   ],
   [
     90,
@@ -1029,7 +1030,7 @@ const RAW_SEED: RawRow[] = [
     "277554",
     "Bajgaw Jalohati",
     600,
-    "2026-03-14",
+    "2026-02-14",
   ],
   [
     91,
@@ -1040,7 +1041,7 @@ const RAW_SEED: RawRow[] = [
     "277555",
     "Purbobajuka poddarbari",
     699,
-    "2026-03-14",
+    "2026-02-14",
   ],
   [
     92,
@@ -1051,7 +1052,7 @@ const RAW_SEED: RawRow[] = [
     "277556",
     "Baligoun Purbohati",
     600,
-    "2026-03-16",
+    "2026-02-16",
   ],
   [
     93,
@@ -1062,7 +1063,7 @@ const RAW_SEED: RawRow[] = [
     "277557",
     "Baligoun Purbohati",
     525,
-    "2026-03-16",
+    "2026-02-16",
   ],
   [
     94,
@@ -1073,7 +1074,7 @@ const RAW_SEED: RawRow[] = [
     "277558",
     "Foridpur Algahati",
     600,
-    "2026-03-16",
+    "2026-02-16",
   ],
   [
     95,
@@ -1084,7 +1085,7 @@ const RAW_SEED: RawRow[] = [
     "277559",
     "Foridpur pochimhati",
     600,
-    "2026-03-21",
+    "2026-02-21",
   ],
   [
     96,
@@ -1095,7 +1096,7 @@ const RAW_SEED: RawRow[] = [
     "277560",
     "Bajuka bajar",
     600,
-    "2026-03-23",
+    "2026-02-23",
   ],
   [
     97,
@@ -1106,7 +1107,7 @@ const RAW_SEED: RawRow[] = [
     "277561",
     "Pocim Bajuka Noyabari",
     600,
-    "2026-03-23",
+    "2026-02-23",
   ],
   [
     98,
@@ -1117,7 +1118,7 @@ const RAW_SEED: RawRow[] = [
     "277562",
     "Foridpur pocimhati",
     600,
-    "2026-03-24",
+    "2026-02-24",
   ],
   [
     99,
@@ -1128,7 +1129,7 @@ const RAW_SEED: RawRow[] = [
     "277563",
     "Baligaw Purbohati",
     600,
-    "2026-03-28",
+    "2026-02-28",
   ],
   [
     100,
@@ -1150,7 +1151,7 @@ const RAW_SEED: RawRow[] = [
     "277565",
     "Purbo Bajuka",
     600,
-    "2026-04-03",
+    "2026-03-03",
   ],
   [
     102,
@@ -1242,7 +1243,7 @@ function buildSeedCustomers(): ExtendedCustomer[] {
         email: "",
         area: village,
         address,
-        packageId: 1n,
+        packageId: getPackageIdByFee(monthlyFee),
         monthlyFee,
         dueAmount: 0,
         status: ServiceStatus.active,

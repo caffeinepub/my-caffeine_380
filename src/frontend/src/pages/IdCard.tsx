@@ -483,7 +483,10 @@ function triggerDownload(canvas: HTMLCanvasElement, filename: string) {
   }, "image/png");
 }
 
-export default function IdCard() {
+interface IdCardProps {
+  isAdmin?: boolean;
+}
+export default function IdCard({ isAdmin = false }: IdCardProps) {
   const { customers } = useLocalCustomers();
   const { data: packages } = usePackages();
   const { settings } = useCompanySettings();
@@ -751,54 +754,60 @@ export default function IdCard() {
                 {selectedCustomer.username} এর আইডি কার্ড
               </h3>
               <div className="flex gap-2 flex-wrap">
-                <Button
-                  onClick={downloadFront}
-                  disabled={isDownloading}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  data-ocid="idcard.front.button"
-                >
-                  {isDownloading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  ফ্রন্ট ডাউনলোড
-                </Button>
-                <Button
-                  onClick={downloadBack}
-                  disabled={isDownloading}
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  data-ocid="idcard.back.button"
-                >
-                  {isDownloading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  ব্যাক ডাউনলোড
-                </Button>
-                <Button
-                  onClick={downloadCombinedA4}
-                  disabled={isDownloading}
-                  size="sm"
-                  className="gap-1.5 font-semibold"
-                  style={{
-                    background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
-                    color: "#d4af37",
-                  }}
-                  data-ocid="idcard.a4.button"
-                >
-                  {isDownloading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Star className="w-3.5 h-3.5" />
-                  )}
-                  A4 একসাথে ডাউনলোড
-                </Button>
+                {isAdmin && (
+                  <Button
+                    onClick={downloadFront}
+                    disabled={isDownloading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    data-ocid="idcard.front.button"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    ফ্রন্ট ডাউনলোড
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    onClick={downloadBack}
+                    disabled={isDownloading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    data-ocid="idcard.back.button"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    ব্যাক ডাউনলোড
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    onClick={downloadCombinedA4}
+                    disabled={isDownloading}
+                    size="sm"
+                    className="gap-1.5 font-semibold"
+                    style={{
+                      background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
+                      color: "#d4af37",
+                    }}
+                    data-ocid="idcard.a4.button"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Star className="w-3.5 h-3.5" />
+                    )}
+                    A4 একসাথে ডাউনলোড
+                  </Button>
+                )}
                 <Button
                   onClick={handlePrint}
                   size="sm"

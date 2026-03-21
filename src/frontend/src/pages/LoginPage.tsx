@@ -21,9 +21,13 @@ interface LoginPageProps {
     email: string;
     name: string;
   }) => void;
+  onCancel?: () => void;
 }
 
-export default function LoginPage({ onAdminLogin }: LoginPageProps) {
+export default function LoginPage({
+  onAdminLogin,
+  onCancel: _onCancel,
+}: LoginPageProps) {
   const { login, isLoggingIn, isLoginError } = useInternetIdentity();
   const { actor } = useActor();
   const [email, setEmail] = useState("");

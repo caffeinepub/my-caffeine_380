@@ -6,6 +6,7 @@ import type {
   Payment,
   ServiceStatus,
 } from "../backend";
+import { PERMANENT_PACKAGES } from "../data/permanentPackages";
 import { useActor } from "./useActor";
 
 export function useCustomers() {
@@ -44,15 +45,12 @@ export function useNodes() {
   });
 }
 
+// Always return permanent packages — no backend call needed
 export function usePackages() {
-  const { actor, isFetching } = useActor();
   return useQuery<Package[]>({
     queryKey: ["packages"],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getPackages();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => PERMANENT_PACKAGES,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 

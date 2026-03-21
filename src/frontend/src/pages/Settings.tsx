@@ -48,9 +48,13 @@ const emptyForm: PackageFormData = {
 
 interface SettingsProps {
   isSuperAdmin: boolean;
+  isAdmin?: boolean;
 }
 
-export default function Settings({ isSuperAdmin }: SettingsProps) {
+export default function Settings({
+  isSuperAdmin,
+  isAdmin: _isAdmin = false,
+}: SettingsProps) {
   const { data: packages, isLoading } = usePackages();
   const { actor } = useActor();
   const allPackages =
