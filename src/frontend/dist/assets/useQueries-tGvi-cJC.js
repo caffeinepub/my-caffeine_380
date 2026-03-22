@@ -1,0 +1,1 @@
+import{u as e}from"./useQuery-DYbH5z57.js";import{P as r}from"./permanentPackages-B5zfMy7y.js";import"./vendor-Cp4Rjhw2.js";import"./index-Bd1LfYOC.js";function o(){return e({queryKey:["packages"],queryFn:async()=>r,staleTime:Number.POSITIVE_INFINITY})}export{o as u};

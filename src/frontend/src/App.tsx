@@ -1,19 +1,20 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import Layout from "./components/Layout";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
-import CallCenter from "./pages/CallCenter";
-import Customers from "./pages/Customers";
-import Dashboard from "./pages/Dashboard";
-import DebtManagement from "./pages/DebtManagement";
-import Finance from "./pages/Finance";
-import IdCard from "./pages/IdCard";
-import LoginPage from "./pages/LoginPage";
-import Network from "./pages/Network";
-import NoticePage from "./pages/NoticePage";
-import Settings from "./pages/Settings";
-import SocialMediaPost from "./pages/SocialMediaPost";
+
+const CallCenter = lazy(() => import("./pages/CallCenter"));
+const Customers = lazy(() => import("./pages/Customers"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DebtManagement = lazy(() => import("./pages/DebtManagement"));
+const Finance = lazy(() => import("./pages/Finance"));
+const IdCard = lazy(() => import("./pages/IdCard"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const Network = lazy(() => import("./pages/Network"));
+const NoticePage = lazy(() => import("./pages/NoticePage"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SocialMediaPost = lazy(() => import("./pages/SocialMediaPost"));
 
 type Page =
   | "dashboard"
@@ -43,6 +44,17 @@ function getStoredAdminSession(): AdminSession | null {
   } catch {
     return null;
   }
+}
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center p-12">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>
+      </div>
+    </div>
+  );
 }
 
 function AppContent() {
@@ -83,8 +95,9 @@ function AppContent() {
         style={{ background: "oklch(0.149 0.035 252)" }}
       >
         <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <Skeleton className="h-4 w-32" />
+          <div className="h-14 w-14 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+          <p className="text-white text-sm font-medium">নওশীন ব্রডব্যান্ড</p>
+          <Skeleton className="h-3 w-28 opacity-40" />
         </div>
       </div>
     );
@@ -92,10 +105,12 @@ function AppContent() {
 
   if (showLogin && !isLoggedIn) {
     return (
-      <LoginPage
-        onAdminLogin={handleAdminLogin}
-        onCancel={() => setShowLogin(false)}
-      />
+      <Suspense fallback={<PageLoader />}>
+        <LoginPage
+          onAdminLogin={handleAdminLogin}
+          onCancel={() => setShowLogin(false)}
+        />
+      </Suspense>
     );
   }
 
@@ -136,7 +151,7 @@ function AppContent() {
       onLogout={isSuperAdmin ? () => clear() : handleLogout}
       onLoginRequest={() => setShowLogin(true)}
     >
-      {renderPage()}
+      <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
       <footer className="mt-8 pb-2 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}. Built with ❤️ using{" "}
         <a
