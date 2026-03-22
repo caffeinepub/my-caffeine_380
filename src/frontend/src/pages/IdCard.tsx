@@ -1126,6 +1126,17 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
                     </div>
                   </CardContent>
                 </Card>
+                {/* Team Info Footer */}
+                <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
+                  <p>
+                    <span className="font-semibold">প্রতিষ্ঠাতা পরিচালক:</span> মুহাম্মদ
+                    মনিরুজ্জামান | WhatsApp: +8801607930157
+                  </p>
+                  <p>
+                    <span className="font-semibold">টেকনিক্যাল ম্যানেজার:</span>{" "}
+                    মুহাম্মদ উজ্জল মিয়া | WhatsApp: +8801648388329
+                  </p>
+                </div>
               </div>
             )}
           </div>

@@ -13,6 +13,7 @@ import {
   Cable,
   ChevronDown,
   CreditCard,
+  Info,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -39,7 +40,8 @@ type Page =
   | "notice"
   | "call"
   | "idcard"
-  | "socialmedia";
+  | "socialmedia"
+  | "aboutus";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -128,6 +130,13 @@ const navItems: NavItem[] = [
     label: "সেটিংস",
     icon: Settings,
     iconColor: "#9CA3AF",
+  },
+
+  {
+    id: "aboutus",
+    label: "আমাদের সম্পর্কে",
+    icon: Info,
+    iconColor: "#6366F1",
   },
 ];
 

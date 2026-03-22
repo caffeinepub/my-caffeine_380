@@ -14,6 +14,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Network = lazy(() => import("./pages/Network"));
 const NoticePage = lazy(() => import("./pages/NoticePage"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
 const SocialMediaPost = lazy(() => import("./pages/SocialMediaPost"));
 
 type Page =
@@ -26,7 +27,8 @@ type Page =
   | "notice"
   | "call"
   | "idcard"
-  | "socialmedia";
+  | "socialmedia"
+  | "aboutus";
 
 interface AdminSession {
   type: "admin";
@@ -132,6 +134,8 @@ function AppContent() {
         return <CallCenter />;
       case "idcard":
         return <IdCard isAdmin={isAdmin} />;
+      case "aboutus":
+        return <AboutUs />;
       case "socialmedia":
         return <SocialMediaPost isAdmin={isAdmin} />;
       case "settings":
