@@ -52,17 +52,92 @@ interface LayoutProps {
   onLoginRequest?: () => void;
 }
 
-const navItems = [
-  { id: "dashboard" as Page, label: "ড্যাশবোর্ড", icon: LayoutDashboard },
-  { id: "customers" as Page, label: "গ্রাহক ব্যবস্থাপনা", icon: Users },
-  { id: "finance" as Page, label: "আর্থিক ব্যবস্থাপনা", icon: Wallet },
-  { id: "debts" as Page, label: "দেনা-পাওনা", icon: ArrowLeftRight },
-  { id: "notice" as Page, label: "নোটিশ বোর্ড", icon: Megaphone },
-  { id: "network" as Page, label: "অপ্টিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
-  { id: "call" as Page, label: "কল সেন্টার", icon: Phone },
-  { id: "idcard" as Page, label: "আইডি কার্ড", icon: CreditCard },
-  { id: "socialmedia" as Page, label: "সোশ্যাল মিডিয়া পোস্ট", icon: Share2 },
-  { id: "settings" as Page, label: "সেটিংস", icon: Settings },
+interface NavItem {
+  id: Page;
+  label: string;
+  icon: React.ElementType;
+  iconColor: string;
+  urgency?: boolean;
+  badge?: string;
+  badgeVariant?: "internal" | "external";
+}
+
+const navItems: NavItem[] = [
+  {
+    id: "dashboard",
+    label: "ড্যাশবোর্ড",
+    icon: LayoutDashboard,
+    iconColor: "#3B82F6",
+  },
+  {
+    id: "customers",
+    label: "গ্রাহক ব্যবস্থাপনা",
+    icon: Users,
+    iconColor: "#6366F1",
+  },
+  {
+    id: "finance",
+    label: "আর্থিক ব্যবস্থাপনা",
+    icon: Wallet,
+    iconColor: "#22C55E",
+  },
+  {
+    id: "debts",
+    label: "দেনা-পাওনা",
+    icon: ArrowLeftRight,
+    iconColor: "#F97316",
+    urgency: true,
+  },
+  {
+    id: "notice",
+    label: "নোটিশ বোর্ড",
+    icon: Megaphone,
+    iconColor: "#F59E0B",
+    urgency: true,
+    badge: "অভ্যন্তরীণ",
+    badgeVariant: "internal",
+  },
+  {
+    id: "network",
+    label: "অপ্টিক্যাল ফাইবার",
+    icon: Cable,
+    iconColor: "#14B8A6",
+  },
+  {
+    id: "call",
+    label: "কল সেন্টার",
+    icon: Phone,
+    iconColor: "#0EA5E9",
+  },
+  {
+    id: "idcard",
+    label: "আইডি কার্ড",
+    icon: CreditCard,
+    iconColor: "#8B5CF6",
+  },
+  {
+    id: "socialmedia",
+    label: "সোশ্যাল মিডিয়া পোস্ট",
+    icon: Share2,
+    iconColor: "#EC4899",
+    badge: "বাহ্যিক",
+    badgeVariant: "external",
+  },
+  {
+    id: "settings",
+    label: "সেটিংস",
+    icon: Settings,
+    iconColor: "#9CA3AF",
+  },
+];
+
+// Bottom tab items for mobile
+const mobileTabItems = [
+  navItems[0], // dashboard
+  navItems[1], // customers
+  navItems[2], // finance
+  navItems[4], // notice
+  navItems[9], // settings
 ];
 
 export default function Layout({
@@ -105,6 +180,8 @@ export default function Layout({
   function closeBackdrop() {
     setSidebarOpen(false);
   }
+
+  const currentNavItem = navItems.find((n) => n.id === currentPage);
 
   return (
     <div
@@ -154,7 +231,7 @@ export default function Layout({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
@@ -164,14 +241,65 @@ export default function Layout({
                 key={item.id}
                 data-ocid={`nav.${item.id}.link`}
                 onClick={() => handleNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left relative ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-white"
+                    ? "text-white"
+                    : "text-sidebar-foreground hover:bg-white/5 hover:text-white"
                 }`}
+                style={{
+                  background: isActive ? `${item.iconColor}22` : undefined,
+                  borderLeft: isActive
+                    ? `3px solid ${item.iconColor}`
+                    : "3px solid transparent",
+                }}
               >
-                <Icon className="w-4.5 h-4.5 shrink-0" size={18} />
-                <span>{item.label}</span>
+                {/* Icon with colored circle bg */}
+                <span
+                  className="flex items-center justify-center w-7 h-7 rounded-md shrink-0"
+                  style={{
+                    background: isActive
+                      ? `${item.iconColor}33`
+                      : `${item.iconColor}1a`,
+                  }}
+                >
+                  <Icon size={15} style={{ color: item.iconColor }} />
+                </span>
+
+                <span className="flex-1 min-w-0 truncate text-sm">
+                  {item.label}
+                </span>
+
+                {/* Urgency dot */}
+                {item.urgency && !item.badge && (
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: "#F97316" }}
+                  />
+                )}
+
+                {/* Badge pill */}
+                {item.badge && (
+                  <span
+                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 leading-none"
+                    style={{
+                      background:
+                        item.badgeVariant === "external"
+                          ? "#EC489922"
+                          : "#3B82F622",
+                      color:
+                        item.badgeVariant === "external"
+                          ? "#EC4899"
+                          : "#60A5FA",
+                      border: `1px solid ${
+                        item.badgeVariant === "external"
+                          ? "#EC489944"
+                          : "#3B82F644"
+                      }`,
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -216,10 +344,48 @@ export default function Layout({
             <Menu size={20} />
           </Button>
 
-          <div className="flex-1">
-            <h1 className="text-base font-semibold text-foreground">
-              {navItems.find((n) => n.id === currentPage)?.label}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {currentNavItem && (
+              <span
+                className="flex items-center justify-center w-6 h-6 rounded-md shrink-0"
+                style={{ background: `${currentNavItem.iconColor}1a` }}
+              >
+                {(() => {
+                  const Icon = currentNavItem.icon;
+                  return (
+                    <Icon
+                      size={14}
+                      style={{ color: currentNavItem.iconColor }}
+                    />
+                  );
+                })()}
+              </span>
+            )}
+            <h1 className="text-base font-semibold text-foreground truncate">
+              {currentNavItem?.label}
             </h1>
+            {currentNavItem?.badge && (
+              <span
+                className="hidden sm:inline text-[10px] font-semibold px-2 py-0.5 rounded-full leading-none"
+                style={{
+                  background:
+                    currentNavItem.badgeVariant === "external"
+                      ? "#EC489915"
+                      : "#3B82F615",
+                  color:
+                    currentNavItem.badgeVariant === "external"
+                      ? "#EC4899"
+                      : "#3B82F6",
+                  border: `1px solid ${
+                    currentNavItem.badgeVariant === "external"
+                      ? "#EC489930"
+                      : "#3B82F630"
+                  }`,
+                }}
+              >
+                {currentNavItem.badge}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -286,9 +452,48 @@ export default function Layout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background p-6">
+        <main className="flex-1 overflow-auto bg-background p-4 lg:p-6 pb-20 lg:pb-6">
           {children}
         </main>
+
+        {/* Mobile bottom tab bar */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-white border-t border-border h-16 shadow-lg">
+          {mobileTabItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                data-ocid={`mobile.nav.${item.id}.tab`}
+                onClick={() => handleNavigate(item.id)}
+                className="flex flex-col items-center justify-center gap-1 flex-1 h-full px-1 transition-all"
+              >
+                <span
+                  className="flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+                  style={{
+                    background: isActive
+                      ? `${item.iconColor}20`
+                      : "transparent",
+                  }}
+                >
+                  <Icon
+                    size={18}
+                    style={{
+                      color: isActive ? item.iconColor : "#9CA3AF",
+                    }}
+                  />
+                </span>
+                <span
+                  className="text-[9px] font-medium leading-none"
+                  style={{ color: isActive ? item.iconColor : "#9CA3AF" }}
+                >
+                  {item.label.split(" ")[0]}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

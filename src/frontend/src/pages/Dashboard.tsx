@@ -145,10 +145,26 @@ const PieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+type Page =
+  | "dashboard"
+  | "customers"
+  | "finance"
+  | "debts"
+  | "network"
+  | "settings"
+  | "notice"
+  | "call"
+  | "idcard"
+  | "socialmedia";
+
 interface DashboardProps {
   isAdmin?: boolean;
+  onNavigate?: (page: Page) => void;
 }
-export default function Dashboard({ isAdmin = false }: DashboardProps) {
+export default function Dashboard({
+  isAdmin = false,
+  onNavigate: _onNavigate,
+}: DashboardProps) {
   const { customers } = useLocalCustomers();
   const { expenses } = useExpenses();
 
@@ -423,15 +439,13 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium mb-2">
-                    u09aeu09cbu099f u09aau09cdu09b0u09beu09aau09cdu09af
-                    u09acu0995u09c7u09afu09bcu09be
+                    মোট প্রাপ্য বকেয়া
                   </p>
                   <p className="text-2xl font-bold text-teal-600">
                     {formatCurrency(debtSummary.totalReceivables)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    u09b8u0982u09afu09cbu0997 u09abu09bf u0993
-                    u0995u09aeu09bfu09b6u09a8
+                    সংযোগ ফি ও কমিশন
                   </p>
                 </div>
                 <div className="p-2.5 rounded-xl bg-teal-500/10">
@@ -448,16 +462,13 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium mb-2">
-                    u09aeu09cbu099f u09aau09cdu09b0u09a6u09c7u09afu09bc
-                    u09acu0995u09c7u09afu09bcu09be
+                    মোট প্রদেয় বকেয়া
                   </p>
                   <p className="text-2xl font-bold text-orange-600">
                     {formatCurrency(debtSummary.totalPayables)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    u099fu09c7u0995u09a8u09bfu09b6u09bfu09afu09bcu09beu09a8,
-                    u09b9u09cbu09b2u09b8u09c7u09b2u09beu09b0,
-                    u0985u0997u09cdu09b0u09bfu09ae
+                    টেকনিশিয়ান, হোলসেলার, অগ্রিম
                   </p>
                 </div>
                 <div className="p-2.5 rounded-xl bg-orange-500/10">
@@ -481,14 +492,26 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="monthly">
-            <TabsList className="mb-4">
-              <TabsTrigger value="monthly" data-ocid="dashboard.monthly.tab">
+            <TabsList className="mb-4 bg-gray-100 dark:bg-gray-800 p-1 gap-1">
+              <TabsTrigger
+                value="monthly"
+                data-ocid="dashboard.monthly.tab"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium"
+              >
                 মাসভিত্তিক
               </TabsTrigger>
-              <TabsTrigger value="yearly" data-ocid="dashboard.yearly.tab">
+              <TabsTrigger
+                value="yearly"
+                data-ocid="dashboard.yearly.tab"
+                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-medium"
+              >
                 বছরভিত্তিক
               </TabsTrigger>
-              <TabsTrigger value="category" data-ocid="dashboard.category.tab">
+              <TabsTrigger
+                value="category"
+                data-ocid="dashboard.category.tab"
+                className="data-[state=active]:bg-violet-600 data-[state=active]:text-white font-medium"
+              >
                 খাতভিত্তিক
               </TabsTrigger>
             </TabsList>

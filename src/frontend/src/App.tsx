@@ -102,7 +102,7 @@ function AppContent() {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard isAdmin={isAdmin} />;
+        return <Dashboard isAdmin={isAdmin} onNavigate={setCurrentPage} />;
       case "customers":
         return <Customers isAdmin={isAdmin} />;
       case "finance":
@@ -122,7 +122,7 @@ function AppContent() {
       case "settings":
         return <Settings isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} />;
       default:
-        return <Dashboard isAdmin={isAdmin} />;
+        return <Dashboard isAdmin={isAdmin} onNavigate={setCurrentPage} />;
     }
   };
 

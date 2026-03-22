@@ -27,6 +27,37 @@ function loadSettings(): CompanySettings {
   return defaults;
 }
 
+/**
+ * Resize + compress an image data URL so it fits comfortably in localStorage.
+ * Max dimension: 256 px, JPEG quality: 0.82
+ */
+export async function compressLogoDataUrl(dataUrl: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 256;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) {
+          height = Math.round((height * MAX) / width);
+          width = MAX;
+        } else {
+          width = Math.round((width * MAX) / height);
+          height = MAX;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => resolve(dataUrl); // fallback: use original
+    img.src = dataUrl;
+  });
+}
+
 export function useCompanySettings() {
   const [settings, setSettings] = useState<CompanySettings>(loadSettings);
 
@@ -48,7 +79,15 @@ export function useCompanySettings() {
   }, []);
 
   function save(next: CompanySettings) {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+    } catch (err) {
+      // If quota exceeded, try saving without logo
+      console.error("localStorage quota exceeded, retrying without logo", err);
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ ...next, logo: null }));
+      } catch (_) {}
+    }
     setSettings(next);
     // Notify all other components on the same page
     window.dispatchEvent(

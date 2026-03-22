@@ -198,8 +198,20 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
         <div className="p-2 rounded-xl bg-primary/10">
           <Megaphone className="w-6 h-6 text-primary" />
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-foreground">নোটিশ বোর্ড</h2>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-bold text-foreground">নোটিশ বোর্ড</h2>
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full leading-none"
+              style={{
+                background: "#3B82F615",
+                color: "#3B82F6",
+                border: "1px solid #3B82F630",
+              }}
+            >
+              অভ্যন্তরীণ ঘোষণা
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground">
             গ্রাহকদের উদ্দেশ্যে পেশাদার নোটিশ তৈরি ও পাঠান
           </p>

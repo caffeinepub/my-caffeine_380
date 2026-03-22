@@ -29,7 +29,10 @@ import type { Package } from "../backend";
 import type { AdminAccount } from "../backend.d";
 import { samplePackages } from "../data/sampleData";
 import { useActor } from "../hooks/useActor";
-import { useCompanySettings } from "../hooks/useCompanySettings";
+import {
+  compressLogoDataUrl,
+  useCompanySettings,
+} from "../hooks/useCompanySettings";
 import { usePackages } from "../hooks/useQueries";
 
 interface PackageFormData {
@@ -81,13 +84,14 @@ export default function Settings({
     });
   }, [settings]);
 
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      setLogoPreview(result);
+    reader.onload = async (ev) => {
+      const raw = ev.target?.result as string;
+      const compressed = await compressLogoDataUrl(raw);
+      setLogoPreview(compressed);
     };
     reader.readAsDataURL(file);
   }

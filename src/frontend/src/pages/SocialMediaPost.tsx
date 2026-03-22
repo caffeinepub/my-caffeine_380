@@ -1171,10 +1171,22 @@ export default function SocialMediaPost({ isAdmin }: Props) {
         <div className="p-2 rounded-lg bg-primary/20">
           <Share2 size={22} className="text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            সোশ্যাল মিডিয়া পোস্টার
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold text-foreground">
+              সোশ্যাল মিডিয়া পোস্টার
+            </h1>
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full leading-none"
+              style={{
+                background: "#EC489915",
+                color: "#EC4899",
+                border: "1px solid #EC489930",
+              }}
+            >
+              বাহ্যিক ঘোষণা
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground">
             ১২০০×১২০০ পিক্সেলের প্রফেশনাল পোস্টার তৈরি করুন
           </p>
