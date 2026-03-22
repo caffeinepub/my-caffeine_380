@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Bell,
   CreditCard,
   Download,
   Loader2,
@@ -11,8 +12,8 @@ import {
   MessageSquare,
   Printer,
   Search,
-  Share2,
   Star,
+  User,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -54,6 +55,15 @@ interface DrawData {
   orgName: string;
   orgAddress: string;
   logo: string | null;
+}
+
+function normalizeWhatsAppPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("880") && digits.length >= 12) return digits;
+  if (digits.startsWith("88") && digits.length >= 12) return digits;
+  if (digits.startsWith("0") && digits.length === 11) return `88${digits}`;
+  if (digits.length === 10) return `880${digits}`;
+  return `88${digits}`;
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement> {
@@ -520,9 +530,9 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
   );
   const [selectedCustomer, setSelectedCustomer] =
     useState<ExtendedCustomer | null>(null);
+  const [isGenerated, setIsGenerated] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   function toggleVillage(v: string) {
@@ -548,6 +558,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
 
   function selectCustomer(c: ExtendedCustomer) {
     setSelectedCustomer(c);
+    setIsGenerated(false);
     setSearch(c.username);
     setShowSuggestions(false);
   }
@@ -580,6 +591,23 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
     return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।
 আপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${customer.cidNumber || ""} এবং মোবাইল নম্বর ${customer.phone} ব্যবহার করে আজই রিচার্জ করুন।
 আপনার প্যাকেজটি ${pkg?.speed || ""} এমবিপিএস এবং মাসিক বিল ${customer.monthlyFee ?? 0} টাকা।`;
+  }
+
+  function handleGenerate() {
+    if (!selectedCustomer) return;
+    setIsGenerated(true);
+    // Auto-save to localStorage history
+    const history = JSON.parse(localStorage.getItem("idcard_history") || "[]");
+    history.unshift({
+      customerId: selectedCustomer.id.toString(),
+      username: selectedCustomer.username,
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem(
+      "idcard_history",
+      JSON.stringify(history.slice(0, 50)),
+    );
+    toast.success(`${selectedCustomer.username} এর আইডি কার্ড সেভ হয়েছে`);
   }
 
   async function downloadFront() {
@@ -654,64 +682,24 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
 
   async function shareWhatsApp() {
     if (!selectedCustomer) return;
-    setIsSharing(true);
-    try {
-      const message = buildShareMessage(selectedCustomer);
-      const phone = selectedCustomer.phone.replace(/\D/g, "");
-
-      // Try Web Share API with image file first
-      if (navigator.share) {
-        try {
-          const data = buildDrawData(selectedCustomer);
-          const canvas = await buildCombinedCanvas(selectedCustomer, data);
-          await new Promise<void>((resolve, reject) => {
-            canvas.toBlob(async (blob) => {
-              if (!blob) {
-                reject(new Error("no blob"));
-                return;
-              }
-              const file = new File(
-                [blob],
-                `${selectedCustomer!.username}_idcard.png`,
-                { type: "image/png" },
-              );
-              try {
-                await navigator.share({
-                  title: "আইডি কার্ড",
-                  text: message,
-                  files: [file],
-                });
-                resolve();
-              } catch {
-                reject(new Error("share failed"));
-              }
-            }, "image/png");
-          });
-          return;
-        } catch {
-          // Fall through to WhatsApp link
-        }
-      }
-
-      // Fallback: open WhatsApp with text
-      const waUrl = phone
-        ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-        : `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, "_blank");
-    } finally {
-      setIsSharing(false);
-    }
+    const message = buildShareMessage(selectedCustomer);
+    const normalizedPhone = normalizeWhatsAppPhone(selectedCustomer.phone);
+    const waUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank");
   }
 
   async function shareImo() {
     if (!selectedCustomer) return;
     const message = buildShareMessage(selectedCustomer);
+    const waPhone = normalizeWhatsAppPhone(selectedCustomer.phone);
     try {
       await navigator.clipboard.writeText(message);
       toast.success("মেসেজ কপি হয়েছে, ইমোতে পেস্ট করুন");
     } catch {
       toast.error("ক্লিপবোর্ডে কপি করা যায়নি");
     }
+    const imoUrl = `imo://chat?phone=${waPhone}`;
+    window.open(imoUrl, "_blank", "noopener,noreferrer");
   }
 
   function shareSMS() {
@@ -823,7 +811,10 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
               onChange={(e) => {
                 setSearch(e.target.value);
                 setShowSuggestions(true);
-                if (!e.target.value.trim()) setSelectedCustomer(null);
+                if (!e.target.value.trim()) {
+                  setSelectedCustomer(null);
+                  setIsGenerated(false);
+                }
               }}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
@@ -849,193 +840,294 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
           )}
         </div>
 
-        {/* ID Card Display */}
+        {/* Main content area */}
         {selectedCustomer ? (
-          <div ref={cardRef} className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h3
-                className="text-sm font-semibold"
-                style={{ color: "#0a2463" }}
+          <div className="space-y-4">
+            {/* Generate button — shown before generation */}
+            {!isGenerated && (
+              <div
+                className="flex flex-col items-center justify-center py-10 gap-4"
+                data-ocid="idcard.generate.panel"
               >
-                {selectedCustomer.username} এর আইডি কার্ড
-              </h3>
-              <div className="flex gap-2 flex-wrap">
-                {isAdmin && (
-                  <Button
-                    onClick={downloadFront}
-                    disabled={isDownloading}
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    data-ocid="idcard.front.button"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Download className="w-3.5 h-3.5" />
-                    )}
-                    ফ্রন্ট ডাউনলোড
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    onClick={downloadBack}
-                    disabled={isDownloading}
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    data-ocid="idcard.back.button"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Download className="w-3.5 h-3.5" />
-                    )}
-                    ব্যাক ডাউনলোড
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    onClick={downloadCombinedA4}
-                    disabled={isDownloading}
-                    size="sm"
-                    className="gap-1.5 font-semibold"
-                    style={{
-                      background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
-                      color: "#d4af37",
-                    }}
-                    data-ocid="idcard.a4.button"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Star className="w-3.5 h-3.5" />
-                    )}
-                    A4 একসাথে ডাউনলোড
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    onClick={downloadPDF}
-                    disabled={isDownloading}
-                    size="sm"
-                    className="gap-1.5 font-semibold"
-                    style={{ background: "#c0392b", color: "#ffffff" }}
-                    data-ocid="idcard.pdf.button"
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Download className="w-3.5 h-3.5" />
-                    )}
-                    PDF ডাউনলোড
-                  </Button>
-                )}
-                <Button
-                  onClick={handlePrint}
-                  size="sm"
-                  className="gap-1.5"
-                  style={{ background: "#0a2463" }}
-                  data-ocid="idcard.print.button"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  প্রিন্ট করুন
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-6 items-start">
-              <NIDCardFront
-                customer={selectedCustomer}
-                pkg={pkg}
-                orgName={orgName}
-                orgAddress={orgAddress}
-                logo={settings.logo}
-              />
-              <NIDCardBack />
-            </div>
-
-            {/* Share Section */}
-            <Card
-              className="border-border shadow-card"
-              data-ocid="idcard.share.card"
-            >
-              <CardHeader className="pb-3">
-                <CardTitle
-                  className="text-sm font-semibold flex items-center gap-2"
-                  style={{ color: "#0a2463" }}
-                >
-                  <Share2 className="w-4 h-4" />
-                  শেয়ার করুন
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  গ্রাহকের মোবাইল নম্বরে আইডি কার্ড ও রিচার্জ বার্তা পাঠান
-                </p>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-3">
-                  {/* WhatsApp Button */}
-                  <Button
-                    onClick={shareWhatsApp}
-                    disabled={isSharing}
-                    size="sm"
-                    className="gap-2 font-semibold text-white"
-                    style={{ background: "#25D366", color: "#ffffff" }}
-                    data-ocid="idcard.whatsapp.button"
-                  >
-                    {isSharing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <MessageCircle className="w-4 h-4" />
-                    )}
-                    WhatsApp
-                  </Button>
-
-                  {/* Imo Button */}
-                  <Button
-                    onClick={shareImo}
-                    size="sm"
-                    className="gap-2 font-semibold text-white"
-                    style={{ background: "#4f46e5", color: "#ffffff" }}
-                    data-ocid="idcard.imo.button"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    ইমো (Imo)
-                  </Button>
-
-                  {/* SIM SMS Button */}
-                  <Button
-                    onClick={shareSMS}
-                    size="sm"
-                    className="gap-2 font-semibold text-white"
-                    style={{ background: "#0284c7", color: "#ffffff" }}
-                    data-ocid="idcard.sms.button"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    সিমে মেসেজ
-                  </Button>
-                </div>
-
-                {/* Message Preview */}
                 <div
-                  className="mt-4 p-3 rounded-lg text-xs text-muted-foreground"
-                  style={{
-                    background: "rgba(10,36,99,0.04)",
-                    border: "1px solid rgba(10,36,99,0.1)",
-                  }}
+                  className="p-4 rounded-full"
+                  style={{ background: "rgba(10,36,99,0.08)" }}
                 >
+                  <CreditCard
+                    className="w-10 h-10"
+                    style={{ color: "#0a2463" }}
+                  />
+                </div>
+                <div className="text-center">
                   <p
-                    className="font-semibold text-xs mb-1"
+                    className="font-semibold text-sm"
                     style={{ color: "#0a2463" }}
                   >
-                    বার্তার নমুনা:
+                    {selectedCustomer.username}
                   </p>
-                  <p className="leading-relaxed whitespace-pre-line">
-                    {buildShareMessage(selectedCustomer)}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    আইডি কার্ড জেনারেট করতে নিচের বাটনে ক্লিক করুন
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+                <Button
+                  onClick={handleGenerate}
+                  size="lg"
+                  className="gap-2 font-bold px-8 py-3 text-base"
+                  style={{
+                    background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
+                    color: "#d4af37",
+                    boxShadow: "0 4px 16px rgba(10,36,99,0.3)",
+                  }}
+                  data-ocid="idcard.primary_button"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Generate আইডি কার্ড
+                </Button>
+              </div>
+            )}
+
+            {/* After generation: ID cards + info + notification */}
+            {isGenerated && (
+              <div ref={cardRef} className="space-y-4">
+                {/* Download/Print toolbar */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h3
+                    className="text-sm font-semibold"
+                    style={{ color: "#0a2463" }}
+                  >
+                    {selectedCustomer.username} এর আইডি কার্ড
+                  </h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {isAdmin && (
+                      <Button
+                        onClick={downloadFront}
+                        disabled={isDownloading}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        data-ocid="idcard.front.button"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        ফ্রন্ট ডাউনলোড
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        onClick={downloadBack}
+                        disabled={isDownloading}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        data-ocid="idcard.back.button"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        ব্যাক ডাউনলোড
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        onClick={downloadCombinedA4}
+                        disabled={isDownloading}
+                        size="sm"
+                        className="gap-1.5 font-semibold"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #0a2463, #1c3f8c)",
+                          color: "#d4af37",
+                        }}
+                        data-ocid="idcard.a4.button"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Star className="w-3.5 h-3.5" />
+                        )}
+                        A4 একসাথে ডাউনলোড
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        onClick={downloadPDF}
+                        disabled={isDownloading}
+                        size="sm"
+                        className="gap-1.5 font-semibold"
+                        style={{ background: "#c0392b", color: "#ffffff" }}
+                        data-ocid="idcard.pdf.button"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        PDF ডাউনলোড
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handlePrint}
+                      size="sm"
+                      className="gap-1.5"
+                      style={{ background: "#0a2463" }}
+                      data-ocid="idcard.print.button"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      প্রিন্ট করুন
+                    </Button>
+                  </div>
+                </div>
+
+                {/* NID Cards */}
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                  <NIDCardFront
+                    customer={selectedCustomer}
+                    pkg={pkg}
+                    orgName={orgName}
+                    orgAddress={orgAddress}
+                    logo={settings.logo}
+                  />
+                  <NIDCardBack />
+                </div>
+
+                {/* Customer Info + Contact Buttons Card */}
+                <Card
+                  className="border-border shadow-card"
+                  data-ocid="idcard.info.card"
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle
+                      className="text-sm font-semibold flex items-center gap-2"
+                      style={{ color: "#0a2463" }}
+                    >
+                      <User className="w-4 h-4" />
+                      গ্রাহকের তথ্য ও যোগাযোগ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex flex-col sm:flex-row gap-4 items-start">
+                      {/* Info list on the left */}
+                      <div className="flex-1 space-y-2">
+                        <CustomerInfoRow
+                          label="নাম"
+                          value={selectedCustomer.username}
+                        />
+                        <CustomerInfoRow
+                          label="সিআইডি নম্বর"
+                          value={selectedCustomer.cidNumber || "—"}
+                          mono
+                        />
+                        <CustomerInfoRow
+                          label="কার্নিভাল আইডি"
+                          value={selectedCustomer.carnivalId || "—"}
+                          mono
+                        />
+                        <CustomerInfoRow
+                          label="ঠিকানা"
+                          value={
+                            selectedCustomer.address ||
+                            selectedCustomer.village ||
+                            "—"
+                          }
+                        />
+                        <CustomerInfoRow
+                          label="মোবাইল নম্বর"
+                          value={selectedCustomer.phone}
+                          mono
+                        />
+                        <CustomerInfoRow
+                          label="প্যাকেজ"
+                          value={pkg?.speed || "—"}
+                        />
+                        <CustomerInfoRow
+                          label="মাসিক বিল"
+                          value={`৳${selectedCustomer.monthlyFee ?? 0}`}
+                        />
+                      </div>
+
+                      {/* Contact buttons on the right */}
+                      <div className="flex sm:flex-col gap-2 flex-wrap">
+                        <Button
+                          onClick={shareWhatsApp}
+                          size="sm"
+                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                          style={{ background: "#25D366" }}
+                          data-ocid="idcard.whatsapp.button"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          WhatsApp
+                        </Button>
+                        <Button
+                          onClick={shareImo}
+                          size="sm"
+                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                          style={{ background: "#4f46e5" }}
+                          data-ocid="idcard.imo.button"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          ইমো (Imo)
+                        </Button>
+                        <Button
+                          onClick={shareSMS}
+                          size="sm"
+                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                          style={{ background: "#0284c7" }}
+                          data-ocid="idcard.sms.button"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          সিমে মেসেজ
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recharge Notification Card */}
+                <Card
+                  className="border-border shadow-card"
+                  style={{ borderLeft: "4px solid #d4af37" }}
+                  data-ocid="idcard.notification.card"
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle
+                      className="text-sm font-semibold flex items-center gap-2"
+                      style={{ color: "#0a2463" }}
+                    >
+                      <Bell className="w-4 h-4" style={{ color: "#d4af37" }} />
+                      রিচার্জ রিমাইন্ডার
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      গ্রাহককে রিচার্জের জন্য নোটিফিকেশন পাঠান
+                    </p>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-4">
+                    {/* Message preview */}
+                    <div
+                      className="p-3 rounded-lg text-xs text-muted-foreground"
+                      style={{
+                        background: "rgba(10,36,99,0.04)",
+                        border: "1px solid rgba(10,36,99,0.1)",
+                      }}
+                    >
+                      <p
+                        className="font-semibold text-xs mb-1"
+                        style={{ color: "#0a2463" }}
+                      >
+                        বার্তার নমুনা:
+                      </p>
+                      <p className="leading-relaxed whitespace-pre-line">
+                        {buildShareMessage(selectedCustomer)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         ) : (
           <div
@@ -1055,12 +1147,43 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
               উপরের সার্চ বক্সে গ্রাহক খুঁজুন
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              গ্রাহকের নামে ক্লিক করলে আইডি কার্ড তৈরি হবে
+              গ্রাহকের নামে ক্লিক করলে Generate বাটন দেখাবে
             </p>
           </div>
         )}
       </div>
     </>
+  );
+}
+
+// Small helper component for the info rows
+function CustomerInfoRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span
+        className="text-xs text-muted-foreground shrink-0"
+        style={{ minWidth: "90px" }}
+      >
+        {label}:
+      </span>
+      <span
+        className="text-sm font-medium"
+        style={{
+          color: "#0a2463",
+          fontFamily: mono ? "monospace" : "inherit",
+        }}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 

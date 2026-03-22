@@ -15,16 +15,17 @@ import {
   Check,
   Copy,
   FileDown,
+  MapPin,
   Megaphone,
   MessageCircle,
   Phone,
   Send,
+  Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
-import type { ExtendedCustomer } from "../types/extended";
 import { printDocument } from "../utils/printDocument";
 
 const ISSUE_TYPES = [
@@ -64,6 +65,15 @@ function buildNoticeText(
   return lines.join("\n");
 }
 
+function normalizeWhatsAppPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("880") && digits.length >= 12) return digits;
+  if (digits.startsWith("88") && digits.length >= 12) return digits;
+  if (digits.startsWith("0") && digits.length === 11) return `88${digits}`;
+  if (digits.length === 10) return `880${digits}`;
+  return `88${digits}`;
+}
+
 function normalizeVillage(v: string): string {
   const val = v
     .toLowerCase()
@@ -87,11 +97,9 @@ function normalizeVillage(v: string): string {
 interface NoticePageProps {
   isAdmin?: boolean;
 }
-export default function NoticePage({ isAdmin = false }: NoticePageProps) {
+export default function NoticePage(_props: NoticePageProps) {
   const { customers } = useLocalCustomers();
   const { settings } = useCompanySettings();
-
-  const rawCustomers = customers;
 
   const [issueType, setIssueType] = useState(ISSUE_TYPES[0]);
   const [area, setArea] = useState("");
@@ -100,7 +108,6 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
   const [notes, setNotes] = useState("");
   const [generated, setGenerated] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
   const [selectedVillages, setSelectedVillages] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -142,23 +149,21 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
   }
 
   function openWhatsApp(mobile: string) {
-    const cleaned = mobile.replace(/[^0-9]/g, "");
-    const url = `https://wa.me/88${cleaned}?text=${encodeURIComponent(noticeText)}`;
+    const url = `https://wa.me/${normalizeWhatsAppPhone(mobile)}?text=${encodeURIComponent(noticeText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function openIMO(mobile: string) {
-    const cleaned = mobile.replace(/[^0-9]/g, "");
-    // Copy message to clipboard and open IMO deep link
-    copyToClipboard(noticeText, `imo-${cleaned}`);
-    const url = `imo://chat?phone=88${cleaned}`;
+    const waPhone = normalizeWhatsAppPhone(mobile);
+    copyToClipboard(noticeText, `imo-${waPhone}`);
+    const url = `imo://chat?phone=${waPhone}`;
     window.open(url, "_blank", "noopener,noreferrer");
     toast.info("নোটিশ কপি হয়েছে — IMO-তে পেস্ট করুন");
   }
 
   function openSMS(mobile: string) {
-    const cleaned = mobile.replace(/[^0-9]/g, "");
-    const url = `sms:+88${cleaned}?body=${encodeURIComponent(noticeText)}`;
+    const waPhone = normalizeWhatsAppPhone(mobile);
+    const url = `sms:+${waPhone}?body=${encodeURIComponent(noticeText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
@@ -169,7 +174,7 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
   }
 
   const filteredCustomers = useMemo(() => {
-    let list = rawCustomers;
+    let list = customers;
     if (selectedVillages.length > 0) {
       list = list.filter((c) => {
         const cVillage = normalizeVillage(c.address || "");
@@ -189,7 +194,7 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
       );
     }
     return list;
-  }, [rawCustomers, selectedVillages, searchQuery]);
+  }, [customers, selectedVillages, searchQuery]);
 
   return (
     <div className="space-y-6" data-ocid="notice.page">
@@ -298,6 +303,57 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
               <Megaphone size={16} className="mr-2" />
               নোটিশ জেনারেট করুন
             </Button>
+
+            {/* Village checkboxes — shown after Generate is clicked */}
+            {generated && (
+              <div className="pt-2 space-y-3 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-primary" />
+                  <Label className="text-xs font-semibold text-foreground">
+                    গ্রাম নির্বাচন করুন (নোটিশ পাঠাতে)
+                  </Label>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {VILLAGES.map((v) => (
+                    <div
+                      key={v}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-colors ${
+                        selectedVillages.includes(v)
+                          ? "bg-primary/10 border-primary/40"
+                          : "bg-muted/20 border-border hover:bg-muted/40"
+                      }`}
+                      onKeyDown={(e) => e.key === "Enter" && toggleVillage(v)}
+                      onClick={() => toggleVillage(v)}
+                      data-ocid={`notice.village.${v}`}
+                    >
+                      <Checkbox
+                        id={`village-notice-${v}`}
+                        checked={selectedVillages.includes(v)}
+                        onCheckedChange={() => toggleVillage(v)}
+                        className="h-4 w-4"
+                      />
+                      <label
+                        htmlFor={`village-notice-${v}`}
+                        className="text-sm font-medium cursor-pointer flex-1"
+                      >
+                        {v}
+                      </label>
+                      {selectedVillages.includes(v) && (
+                        <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                          নির্বাচিত
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {selectedVillages.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {selectedVillages.length}টি গ্রাম নির্বাচিত — নিচে গ্রাহক তালিকা
+                    দেখুন
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -367,57 +423,40 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
         </Card>
       </div>
 
-      {/* Customer Send List */}
-      {generated && (
+      {/* Customer List — shown when villages are selected after Generate */}
+      {generated && selectedVillages.length > 0 && (
         <Card
           className="shadow-card border-border"
           data-ocid="notice.customer_list.card"
         >
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              গ্রাহকদের নোটিশ পাঠান
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Village Filter */}
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">
-                গ্রাম অনুযায়ী ফিল্টার করুন
-              </Label>
-              <div className="flex flex-wrap gap-3">
-                {VILLAGES.map((v) => (
-                  <div
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-primary" />
+                <CardTitle className="text-base font-semibold">
+                  গ্রাহক তালিকা
+                </CardTitle>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedVillages.map((v) => (
+                  <span
                     key={v}
-                    className="flex items-center gap-2 cursor-pointer select-none"
-                    data-ocid={`notice.village.${v}`}
-                    onClick={() => toggleVillage(v)}
-                    onKeyDown={(e) => e.key === "Enter" && toggleVillage(v)}
+                    className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
                   >
-                    <Checkbox
-                      id={`village-notice-${v}`}
-                      checked={selectedVillages.includes(v)}
-                      onCheckedChange={() => toggleVillage(v)}
-                      className="h-4 w-4"
-                    />
-                    <label
-                      htmlFor={`village-notice-${v}`}
-                      className="text-sm font-medium cursor-pointer"
-                    >
-                      {v}
-                    </label>
-                  </div>
+                    {v}
+                  </span>
                 ))}
               </div>
             </div>
-
+          </CardHeader>
+          <CardContent className="space-y-4">
             {/* Search Box */}
             <div className="relative">
               <Input
                 data-ocid="notice.search.input"
-                placeholder="নাম, ইউজার আইডি, মোবাইল, কার্নিভাল আইডি বা সিআইডি দিয়ে সার্চ করুন..."
+                placeholder="নাম, মোবাইল, কার্নিভাল আইডি বা সিআইডি দিয়ে সার্চ করুন..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4"
               />
             </div>
 
@@ -470,61 +509,35 @@ export default function NoticePage({ isAdmin = false }: NoticePageProps) {
                       <td className="py-3 px-4">
                         <div className="flex gap-1.5 flex-wrap">
                           {/* WhatsApp */}
-                          {isAdmin && (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white h-7 px-2.5 text-xs"
-                              onClick={() => openWhatsApp(c.phone)}
-                              data-ocid={`notice.whatsapp.button.${i + 1}`}
-                            >
-                              <MessageCircle size={12} className="mr-1" />
-                              WhatsApp
-                            </Button>
-                          )}
-                          {/* IMO */}
-                          {isAdmin && (
-                            <Button
-                              size="sm"
-                              className="bg-blue-500 hover:bg-blue-600 text-white h-7 px-2.5 text-xs"
-                              onClick={() => openIMO(c.phone)}
-                              data-ocid={`notice.imo.button.${i + 1}`}
-                            >
-                              <MessageCircle size={12} className="mr-1" />
-                              IMO
-                            </Button>
-                          )}
-                          {/* SMS */}
-                          {isAdmin && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2.5 text-xs border-orange-400 text-orange-600 hover:bg-orange-50"
-                              onClick={() => openSMS(c.phone)}
-                              data-ocid={`notice.sms.button.${i + 1}`}
-                            >
-                              <Phone size={12} className="mr-1" />
-                              SMS
-                            </Button>
-                          )}
-                          {/* Copy */}
                           <Button
-                            variant="outline"
                             size="sm"
-                            className="h-7 px-2.5 text-xs"
-                            onClick={() =>
-                              copyToClipboard(
-                                noticeText,
-                                `copy-${c.id.toString()}`,
-                              )
-                            }
-                            data-ocid={`notice.copy.button.${i + 1}`}
+                            className="bg-green-600 hover:bg-green-700 text-white h-7 px-2.5 text-xs"
+                            onClick={() => openWhatsApp(c.phone)}
+                            data-ocid={`notice.whatsapp.button.${i + 1}`}
                           >
-                            {copiedId === `copy-${c.id.toString()}` ? (
-                              <Check size={12} className="mr-1 text-success" />
-                            ) : (
-                              <Copy size={12} className="mr-1" />
-                            )}
-                            কপি
+                            <MessageCircle size={12} className="mr-1" />
+                            WhatsApp
+                          </Button>
+                          {/* IMO */}
+                          <Button
+                            size="sm"
+                            className="bg-blue-500 hover:bg-blue-600 text-white h-7 px-2.5 text-xs"
+                            onClick={() => openIMO(c.phone)}
+                            data-ocid={`notice.imo.button.${i + 1}`}
+                          >
+                            <MessageCircle size={12} className="mr-1" />
+                            IMO
+                          </Button>
+                          {/* SMS */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-xs border-orange-400 text-orange-600 hover:bg-orange-50"
+                            onClick={() => openSMS(c.phone)}
+                            data-ocid={`notice.sms.button.${i + 1}`}
+                          >
+                            <Phone size={12} className="mr-1" />
+                            SMS
                           </Button>
                         </div>
                       </td>
