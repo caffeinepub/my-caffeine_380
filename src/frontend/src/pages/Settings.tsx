@@ -71,6 +71,16 @@ export default function Settings({
   const [savingCompany, setSavingCompany] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setLogoPreview(settings.logo);
+    setCompanyForm({
+      name: settings.name,
+      address: settings.address,
+      email: settings.email,
+      whatsapp: settings.whatsapp,
+    });
+  }, [settings]);
+
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;

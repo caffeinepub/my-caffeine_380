@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 import Network from "./pages/Network";
 import NoticePage from "./pages/NoticePage";
 import Settings from "./pages/Settings";
+import SocialMediaPost from "./pages/SocialMediaPost";
 
 type Page =
   | "dashboard"
@@ -23,7 +24,8 @@ type Page =
   | "settings"
   | "notice"
   | "call"
-  | "idcard";
+  | "idcard"
+  | "socialmedia";
 
 interface AdminSession {
   type: "admin";
@@ -115,6 +117,8 @@ function AppContent() {
         return <CallCenter />;
       case "idcard":
         return <IdCard isAdmin={isAdmin} />;
+      case "socialmedia":
+        return <SocialMediaPost isAdmin={isAdmin} />;
       case "settings":
         return <Settings isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} />;
       default:

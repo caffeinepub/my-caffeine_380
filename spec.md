@@ -1,29 +1,34 @@
 # নওশীন ব্রডব্যান্ড ইন্টারনেট
 
 ## Current State
-- Finance.tsx: Commission is auto-calculated from customer data (monthlyFee × commissionPercent × completedPeriods). Expenses stored via useExpenses hook with categories including 'টেকনিশিয়ান বেতন'. সংযোগ ফি বকেয়া already syncs bidirectionally with DebtManagement.
-- DebtManagement.tsx: CommissionDue, TechnicianSalaryDue, WholesalerDue are all manually entered with no sync to Finance.
+SocialMediaPost.tsx-এ ১০টি builtin ক্যাটাগরি আছে, প্রতিটির জন্য color/gradient এবং canvas decoration আছে। তবে কিছু ক্যাটাগরির থিম ইউজারের চাহিদা অনুযায়ী সঠিক নয়।
 
 ## Requested Changes (Diff)
 
 ### Add
-- Sync 1 (Commission): When CommissionDue form opens in DebtManagement, auto-populate totalCommission with the calculated commission total from Finance (sum across all customers). Display a note that the value is sourced from financial management.
-- Sync 2 (Technician Salary): When an expense with category 'টেকনিশিয়ান বেতন' is saved in Finance, auto-create/update a corresponding TechnicianSalaryDue record in DebtManagement (technicianName=description, dueMonth=month from expense date, dueAmount=amount). When TechnicianSalaryDue is edited/paid in DebtManagement, update the corresponding Finance expense amount.
-- Sync 3 (Wholesaler): When a new expense is added in Finance with product categories (রাউটার, ONU, অপটিক্যাল ফাইবার, স্প্লিটার), auto-create a WholesalerDue entry in DebtManagement (productName=category, description=description, rate=rate, amount=qty×rate, dueBill=amount by default, date=expense date). When WholesalerDue is paid/updated in DebtManagement, reflect dueBill in Finance.
+- জরুরি বার্তা (urgent): লাল/হলুদ থিম, সতর্কতা আইকন (warning triangle, exclamation)
+- সমস্যার নোটিশ (problem): নীল/ধূসর থিম, টেকনিক্যাল আইকন (gear/tool symbol)
+- ঈদের শুভেচ্ছা (eid): সবুজ/সোনালি থিম, ইসলামিক প্যাটার্ন (crescent+star, geometric)
+- নববর্ষের শুভেচ্ছা (newyear): লাল/সোনালি থিম, উৎসবমুখর গ্রাফিক্স (fireworks, confetti)
+- বিশেষ অফার (offer): আধুনিক ঝকঝকে থিম, ডিসকাউন্ট ব্যাজ (shimmer, % badge, stars)
+- প্রতিষ্ঠাবার্ষিকী (anniversary): নীল/সোনালি থিম, আনুষ্ঠানিক ডিজাইন (medallion, ribbons)
 
 ### Modify
-- Finance.tsx: After addExpense/updateExpense for 'টেকনিশিয়ান বেতন' → call actor to create/update TechnicianSalaryDue. After addExpense for product categories → call actor to create WholesalerDue.
-- DebtManagement.tsx CommissionDuesSection: On dialog open (add mode), fetch total calculated commission from customer data and pre-fill totalCommission field. Add a helper to compute total commission using same formula as Finance.
-- DebtManagement.tsx TechnicianSalarySection: On save, also sync to Finance expense (add or update via actor.addExpense/updateExpense with category='টেকনিশিয়ান বেতন').
-- DebtManagement.tsx WholesalerDuesSection: On save (when dueBill > 0), also create/update corresponding Finance expense.
+- POSTER_COLORS: urgent → red/yellow, problem → blue/gray, offer → dark purple shimmer, newyear → red/gold, anniversary → navy/gold
+- drawDecorations: rewrite each category's canvas drawing to match the new themes with unique, professional decorations
+- POSTER_SYMBOLS: update emoji/text to match new themes
 
 ### Remove
-- Nothing removed.
+- Old color schemes that don't match the new themes
 
 ## Implementation Plan
-1. Add a shared utility function `calculateTotalCommission(customers)` that both Finance and DebtManagement can use.
-2. In Finance.tsx: after saving an expense, check category and trigger appropriate sync (টেকনিশিয়ান বেতন → TechnicianSalaryDue, product categories → WholesalerDue). Link expense IDs to DebtManagement records via description or a reference field.
-3. In DebtManagement.tsx CommissionDuesSection: On 'নতুন কমিশন যুক্ত করুন' dialog open, fetch all customers from actor and compute total commission, pre-fill the form.
-4. In DebtManagement.tsx TechnicianSalarySection: On save, sync to Finance expenses via actor.
-5. In DebtManagement.tsx WholesalerDuesSection: On save, sync to Finance expenses via actor.
-6. Use expense description or a naming convention (e.g. 'TECH_SYNC:name:month', 'WHOLE_SYNC:id') to match records across modules and avoid duplicates.
+1. Update POSTER_COLORS for each category with new color values
+2. Update POSTER_SYMBOLS for each category
+3. Rewrite drawDecorations function with rich, unique canvas drawings per category:
+   - urgent: red bg, warning triangles, hazard stripes, exclamation marks
+   - problem: blue/gray bg, gear icons, wrench symbols, circuit-like pattern
+   - eid: deep green bg, crescent moon, Islamic geometric star pattern, golden arabesque
+   - newyear: red/gold bg, firework bursts, confetti, festive sparkles
+   - offer: dark shimmer bg, glowing %, discount badge circle, sparkle stars
+   - anniversary: navy/gold bg, medallion circle, ribbon bows, formal ornament
+4. Keep all other functionality (category management, facebook, download) intact

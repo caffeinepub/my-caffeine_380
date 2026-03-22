@@ -20,6 +20,7 @@ import {
   Menu,
   Phone,
   Settings,
+  Share2,
   Shield,
   Users,
   Wallet,
@@ -37,7 +38,8 @@ type Page =
   | "settings"
   | "notice"
   | "call"
-  | "idcard";
+  | "idcard"
+  | "socialmedia";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -59,6 +61,7 @@ const navItems = [
   { id: "network" as Page, label: "অপ্টিক্যাল ফাইবার ম্যানেজমেন্ট", icon: Cable },
   { id: "call" as Page, label: "কল সেন্টার", icon: Phone },
   { id: "idcard" as Page, label: "আইডি কার্ড", icon: CreditCard },
+  { id: "socialmedia" as Page, label: "সোশ্যাল মিডিয়া পোস্ট", icon: Share2 },
   { id: "settings" as Page, label: "সেটিংস", icon: Settings },
 ];
 
