@@ -176,20 +176,16 @@ async function drawFrontCard(
     const logoSize = scale * 30;
     const logoY = offsetY + (headerH - logoSize) / 2;
     const logoX = offsetX + padding;
-    // White circular badge behind logo
+    const cx = logoX + logoSize / 2;
+    const cy = logoY + logoSize / 2;
+    const r = logoSize / 2;
     ctx.save();
-    ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(
-      logoX + logoSize / 2,
-      logoY + logoSize / 2,
-      logoSize / 2 + scale * 2,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-    ctx.restore();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
     ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+    ctx.restore();
     textX = padding + logoSize + scale * 10;
   }
 
@@ -285,6 +281,36 @@ async function drawFrontCard(
     billText,
     offsetX + W - padding - scale * 12 - billMeasure.width,
     billBoxY + scale * 7,
+  );
+  ctx.restore();
+
+  // Management info between bill and footer
+  const mgmtY = billBoxY + billBoxH + scale * 4;
+  ctx.save();
+  ctx.fillStyle = "#d4af37";
+  ctx.fillRect(offsetX + padding, mgmtY, W - padding * 2, scale * 0.5);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = "#0a2463";
+  ctx.font = `bold ${scale * 7}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
+  ctx.fillText("পরিচালনায়:", offsetX + padding, mgmtY + scale * 3);
+  ctx.fillStyle = "#333333";
+  ctx.font = `${scale * 7}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
+  ctx.fillText(
+    " মুহাম্মদ মনিরুজ্জামান  |  WhatsApp: +8801607930157",
+    offsetX + padding + scale * 40,
+    mgmtY + scale * 3,
+  );
+  ctx.fillStyle = "#0a2463";
+  ctx.font = `bold ${scale * 7}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
+  ctx.fillText("প্রযুক্তিগত সহযোগিতায়:", offsetX + padding, mgmtY + scale * 12);
+  ctx.fillStyle = "#333333";
+  ctx.font = `${scale * 7}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
+  ctx.fillText(
+    " মুহাম্মদ উজ্জল মিয়া  |  WhatsApp: +8801648388329",
+    offsetX + padding + scale * 68,
+    mgmtY + scale * 12,
   );
   ctx.restore();
 
@@ -1242,29 +1268,17 @@ function NIDCardFront({ customer, pkg, orgName, orgAddress, logo }: CardProps) {
         }}
       >
         {logo && (
-          <div
+          <img
+            src={logo}
+            alt="লোগো"
             style={{
               width: "32px",
               height: "32px",
-              borderRadius: "50%",
-              background: "white",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              objectFit: "cover",
               flexShrink: 0,
-              padding: "2px",
+              borderRadius: "50%",
             }}
-          >
-            <img
-              src={logo}
-              alt="লোগো"
-              style={{
-                width: "26px",
-                height: "26px",
-                objectFit: "contain",
-              }}
-            />
-          </div>
+          />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p
@@ -1353,6 +1367,42 @@ function NIDCardFront({ customer, pkg, orgName, orgAddress, logo }: CardProps) {
             ৳{(customer.monthlyFee ?? 0).toLocaleString()}
           </span>
         </div>
+      </div>
+
+      {/* Management info */}
+      <div
+        style={{
+          padding: "4px 12px",
+          borderTop: "1px solid rgba(212,175,55,0.3)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2px",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "7px",
+            color: "#4a5568",
+            margin: 0,
+            lineHeight: 1.4,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#0a2463" }}>পরিচালনায়:</span>{" "}
+          মুহাম্মদ মনিরুজ্জামান &nbsp;|&nbsp; WhatsApp: +8801607930157
+        </p>
+        <p
+          style={{
+            fontSize: "7px",
+            color: "#4a5568",
+            margin: 0,
+            lineHeight: 1.4,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "#0a2463" }}>
+            প্রযুক্তিগত সহযোগিতায়:
+          </span>{" "}
+          মুহাম্মদ উজ্জল মিয়া &nbsp;|&nbsp; WhatsApp: +8801648388329
+        </p>
       </div>
 
       {/* Footer strip */}

@@ -99,6 +99,25 @@ export default function AboutUs() {
           </Card>
         ))}
       </div>
+
+      {/* Address */}
+      <Card
+        className="shadow-card border-border"
+        data-ocid="aboutus.address.card"
+        style={{ borderLeft: "4px solid #0a2463" }}
+      >
+        <CardContent className="pt-5 pb-5">
+          <p
+            className="text-xs font-semibold uppercase tracking-wide mb-1"
+            style={{ color: "#0a2463" }}
+          >
+            প্রতিষ্ঠানের ঠিকানা
+          </p>
+          <p className="text-base font-bold text-foreground">
+            বালিগাঁও, অষ্টগ্রাম, কিশোরগঞ্জ
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
