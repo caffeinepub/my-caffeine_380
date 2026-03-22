@@ -71,6 +71,28 @@ const DEFAULT_CATEGORIES = [
 
 const DEFAULT_UNITS = ["জন", "মিটার", "টি", "বক্স", "পিস"];
 
+const BANGLA_MONTHS_ARRAY = [
+  "জানুয়ারি",
+  "ফেব্রুয়ারি",
+  "মার্চ",
+  "এপ্রিল",
+  "মে",
+  "জুন",
+  "জুলাই",
+  "আগস্ট",
+  "সেপ্টেম্বর",
+  "অক্টোবর",
+  "নভেম্বর",
+  "ডিসেম্বর",
+];
+
+const PRODUCT_SYNC_CATEGORIES = ["রাউটার", "ONU", "অপটিক্যাল ফাইবার", "স্প্লিটার"];
+
+function formatBanglaMonth(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${BANGLA_MONTHS_ARRAY[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 interface EditFormData {
   username: string;
   password: string;
@@ -363,14 +385,83 @@ export default function Finance({ isAdmin = false }: FinanceProps) {
       return;
     }
     setExpenseSubmitting(true);
+    const expDesc = expenseForm.description;
+    const expAmt = Number.parseFloat(expenseForm.amount) || 0;
+    const expRate = Number.parseFloat(expenseForm.rate) || 0;
+    const expDate = expenseForm.date || new Date().toISOString().split("T")[0];
     addExpense({
       category,
-      description: expenseForm.description,
+      description: expDesc,
       unit,
-      rate: Number.parseFloat(expenseForm.rate) || 0,
-      amount: Number.parseFloat(expenseForm.amount) || 0,
-      date: expenseForm.date || new Date().toISOString().split("T")[0],
+      rate: expRate,
+      amount: expAmt,
+      date: expDate,
     });
+    // Sync to DebtManagement
+    if (actor) {
+      const banglaMonth = formatBanglaMonth(expDate);
+      if (category === "টেকনিশিয়ান বেতন") {
+        try {
+          const dues = await actor.getTechnicianSalaryDues();
+          const monthName = banglaMonth.split(" ")[0];
+          const existing = dues.find(
+            (d: { technicianName: string; dueMonth: string }) =>
+              d.technicianName === expDesc && d.dueMonth.includes(monthName),
+          );
+          if (!existing) {
+            await actor.addTechnicianSalaryDue({
+              id: crypto.randomUUID(),
+              serial: BigInt(dues.length + 1),
+              technicianName: expDesc,
+              dueMonth: banglaMonth,
+              dueAmount: expAmt,
+              totalDue: expAmt,
+              createdAt: BigInt(Date.now()),
+            });
+          } else {
+            await actor.updateTechnicianSalaryDue({
+              ...existing,
+              dueAmount: expAmt,
+              totalDue: expAmt,
+            });
+          }
+        } catch {
+          // ignore sync errors
+        }
+      } else if (PRODUCT_SYNC_CATEGORIES.includes(category)) {
+        try {
+          const dues = await actor.getWholesalerDues();
+          const productName = category + (expDesc ? ` - ${expDesc}` : "");
+          const existing = dues.find(
+            (d: { productName: string; date: string }) =>
+              d.productName === productName && d.date === expDate,
+          );
+          const record = {
+            id: existing?.id ?? crypto.randomUUID(),
+            serial: existing?.serial ?? BigInt(dues.length + 1),
+            wholesalerName: expDesc || category,
+            mobile: "",
+            address: "",
+            productName,
+            quantity: 1,
+            rate: expRate || expAmt,
+            amount: expAmt,
+            totalAmount: expAmt,
+            paidBill: 0,
+            dueBill: expAmt,
+            date: expDate,
+            createdAt: existing?.createdAt ?? BigInt(Date.now()),
+          };
+          if (existing) {
+            await actor.updateWholesalerDue(record);
+          } else {
+            await actor.addWholesalerDue(record);
+          }
+        } catch {
+          // ignore sync errors
+        }
+      }
+    }
     setExpenseForm(EMPTY_EXPENSE_FORM);
     setExpenseSubmitting(false);
     toast.success("ব্যয় যুক্ত করা হয়েছে");
@@ -394,7 +485,7 @@ export default function Finance({ isAdmin = false }: FinanceProps) {
     setEditExpenseOpen(true);
   }
 
-  function handleEditExpenseSave() {
+  async function handleEditExpenseSave() {
     if (!editingExpense) return;
     const category = resolveCategory(editExpenseForm);
     const unit = resolveUnit(editExpenseForm);
@@ -402,15 +493,85 @@ export default function Finance({ isAdmin = false }: FinanceProps) {
       toast.error("ব্যয়ের খাত নির্বাচন করুন");
       return;
     }
+    const expDesc = editExpenseForm.description;
+    const expAmt = Number.parseFloat(editExpenseForm.amount) || 0;
+    const expRate = Number.parseFloat(editExpenseForm.rate) || 0;
+    const expDate =
+      editExpenseForm.date || new Date().toISOString().split("T")[0];
     updateExpense({
       ...editingExpense,
       category,
-      description: editExpenseForm.description,
+      description: expDesc,
       unit,
-      rate: Number.parseFloat(editExpenseForm.rate) || 0,
-      amount: Number.parseFloat(editExpenseForm.amount) || 0,
-      date: editExpenseForm.date || new Date().toISOString().split("T")[0],
+      rate: expRate,
+      amount: expAmt,
+      date: expDate,
     });
+    // Sync to DebtManagement
+    if (actor) {
+      const banglaMonth = formatBanglaMonth(expDate);
+      if (category === "টেকনিশিয়ান বেতন") {
+        try {
+          const dues = await actor.getTechnicianSalaryDues();
+          const monthName = banglaMonth.split(" ")[0];
+          const existing = dues.find(
+            (d: { technicianName: string; dueMonth: string }) =>
+              d.technicianName === expDesc && d.dueMonth.includes(monthName),
+          );
+          if (!existing) {
+            await actor.addTechnicianSalaryDue({
+              id: crypto.randomUUID(),
+              serial: BigInt(dues.length + 1),
+              technicianName: expDesc,
+              dueMonth: banglaMonth,
+              dueAmount: expAmt,
+              totalDue: expAmt,
+              createdAt: BigInt(Date.now()),
+            });
+          } else {
+            await actor.updateTechnicianSalaryDue({
+              ...existing,
+              dueAmount: expAmt,
+              totalDue: expAmt,
+            });
+          }
+        } catch {
+          // ignore sync errors
+        }
+      } else if (PRODUCT_SYNC_CATEGORIES.includes(category)) {
+        try {
+          const dues = await actor.getWholesalerDues();
+          const productName = category + (expDesc ? ` - ${expDesc}` : "");
+          const existing = dues.find(
+            (d: { productName: string; date: string }) =>
+              d.productName === productName && d.date === expDate,
+          );
+          const record = {
+            id: existing?.id ?? crypto.randomUUID(),
+            serial: existing?.serial ?? BigInt(dues.length + 1),
+            wholesalerName: expDesc || category,
+            mobile: "",
+            address: "",
+            productName,
+            quantity: 1,
+            rate: expRate || expAmt,
+            amount: expAmt,
+            totalAmount: expAmt,
+            paidBill: 0,
+            dueBill: expAmt,
+            date: expDate,
+            createdAt: existing?.createdAt ?? BigInt(Date.now()),
+          };
+          if (existing) {
+            await actor.updateWholesalerDue(record);
+          } else {
+            await actor.addWholesalerDue(record);
+          }
+        } catch {
+          // ignore sync errors
+        }
+      }
+    }
     setEditExpenseOpen(false);
     toast.success("ব্যয় আপডেট করা হয়েছে");
   }

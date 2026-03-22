@@ -56,6 +56,20 @@ const BANGLA_MONTHS = [
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+function formatBanglaMonthDM(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${BANGLA_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getDateFromBanglaMonth(banglaMonth: string): string {
+  const parts = banglaMonth.trim().split(/\s+/);
+  const monthName = parts[0];
+  const year = parts[1] || String(new Date().getFullYear());
+  const monthIdx = BANGLA_MONTHS.indexOf(monthName);
+  const m = monthIdx >= 0 ? monthIdx + 1 : 1;
+  return `${year}-${String(m).padStart(2, "0")}-01`;
+}
 const YEARS = Array.from({ length: 5 }, (_, i) => String(CURRENT_YEAR - 2 + i));
 
 function formatCurrency(n: number) {
@@ -525,6 +539,7 @@ function CommissionDuesSection({ isAdmin }: { isAdmin: boolean }) {
     totalCommission: "",
     paidCommission: "",
   });
+  const [commissionAutoFilled, setCommissionAutoFilled] = useState(false);
 
   const load = useCallback(async (a: backendInterface) => {
     try {
@@ -541,9 +556,47 @@ function CommissionDuesSection({ isAdmin }: { isAdmin: boolean }) {
     if (actor) load(actor);
   }, [actor, load]);
 
-  function openAdd() {
+  async function openAdd() {
     setEditItem(null);
-    setForm({ dueMonth: "", totalCommission: "", paidCommission: "" });
+    let autoCommission = "";
+    if (actor) {
+      try {
+        const customers = await actor.getCustomers();
+        const total = customers.reduce(
+          (
+            sum: number,
+            c: {
+              connectionDate: bigint;
+              monthlyFee: number;
+              commissionPercent?: number;
+            },
+          ) => {
+            const periods = Math.max(
+              0,
+              Math.floor(
+                (Date.now() - Number(c.connectionDate / 1000000n)) /
+                  (30 * 24 * 60 * 60 * 1000),
+              ),
+            );
+            return (
+              sum +
+              periods *
+                Math.round((c.monthlyFee * (c.commissionPercent ?? 30)) / 100)
+            );
+          },
+          0,
+        );
+        autoCommission = String(Math.round(total));
+      } catch {
+        // ignore
+      }
+    }
+    setCommissionAutoFilled(autoCommission !== "");
+    setForm({
+      dueMonth: "",
+      totalCommission: autoCommission,
+      paidCommission: "",
+    });
     setDialogOpen(true);
   }
 
@@ -828,6 +881,11 @@ function CommissionDuesSection({ isAdmin }: { isAdmin: boolean }) {
                     setForm((p) => ({ ...p, totalCommission: e.target.value }))
                   }
                 />
+                {commissionAutoFilled && !editItem && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    আর্থিক ব্যবস্থাপনার হিসাব অনুযায়ী স্বয়ংক্রিয়ভাবে পূরণ হয়েছে
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-xs">পরিশোধিত</Label>
@@ -945,6 +1003,39 @@ function TechnicianSalarySection({ isAdmin }: { isAdmin: boolean }) {
       } else {
         await actor.addTechnicianSalaryDue(record);
         toast.success("যুক্ত হয়েছে");
+      }
+      // Sync to Finance expenses
+      try {
+        const allExpenses = await actor.getExpenses();
+        const monthName = record.dueMonth.split(" ")[0];
+        const existingExp = allExpenses.find(
+          (e: { category: string; description: string; date: string }) =>
+            e.category === "টেকনিশিয়ান বেতন" &&
+            e.description === record.technicianName &&
+            formatBanglaMonthDM(e.date).startsWith(monthName),
+        );
+        const expDate = getDateFromBanglaMonth(record.dueMonth);
+        if (!existingExp) {
+          await actor.addExpense({
+            id: crypto.randomUUID(),
+            serial: BigInt(allExpenses.length + 1),
+            category: "টেকনিশিয়ান বেতন",
+            description: record.technicianName,
+            unit: "জন",
+            rate: record.dueAmount,
+            amount: record.dueAmount,
+            date: expDate,
+            createdAt: BigInt(Date.now()),
+          });
+        } else {
+          await actor.updateExpense({
+            ...existingExp,
+            amount: record.dueAmount,
+            rate: record.dueAmount,
+          });
+        }
+      } catch {
+        // ignore sync errors
       }
       setDialogOpen(false);
       load(actor);
@@ -1326,6 +1417,38 @@ function WholesalerDuesSection({ isAdmin }: { isAdmin: boolean }) {
       } else {
         await actor.addWholesalerDue(record);
         toast.success("যুক্ত হয়েছে");
+      }
+      // Sync to Finance expenses
+      try {
+        const allExpenses = await actor.getExpenses();
+        const validCats = ["রাউটার", "ONU", "অপটিক্যাল ফাইবার", "স্প্লিটার"];
+        const catPart = record.productName.split(" - ")[0];
+        const expCat = validCats.includes(catPart) ? catPart : "রাউটার";
+        const existingExp = allExpenses.find(
+          (e: { description: string; date: string }) =>
+            e.description === record.productName && e.date === record.date,
+        );
+        if (!existingExp) {
+          await actor.addExpense({
+            id: crypto.randomUUID(),
+            serial: BigInt(allExpenses.length + 1),
+            category: expCat,
+            description: record.productName,
+            unit: "পিস",
+            rate: record.rate,
+            amount: record.amount,
+            date: record.date,
+            createdAt: BigInt(Date.now()),
+          });
+        } else {
+          await actor.updateExpense({
+            ...existingExp,
+            amount: record.amount,
+            rate: record.rate,
+          });
+        }
+      } catch {
+        // ignore sync errors
       }
       setDialogOpen(false);
       load(actor);

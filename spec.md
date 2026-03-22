@@ -1,28 +1,29 @@
 # নওশীন ব্রডব্যান্ড ইন্টারনেট
 
 ## Current State
-- Finance.tsx income tab has "সংযোগ ফি নগদ" and "সংযোগ ফি বকেয়া" columns per customer, stored via `actor.updateCustomerFinancial()` (by cidNumber)
-- DebtManagement.tsx has a `ConnectionFeeDuesSection` in "প্রাপ্য বকেয়া" tab with its own independent backend records via `actor.addConnectionFeeDue()` / `actor.updateConnectionFeeDue()` / `actor.deleteConnectionFeeDue()`
-- These two systems are currently completely independent — no sync exists
+- Finance.tsx: Commission is auto-calculated from customer data (monthlyFee × commissionPercent × completedPeriods). Expenses stored via useExpenses hook with categories including 'টেকনিশিয়ান বেতন'. সংযোগ ফি বকেয়া already syncs bidirectionally with DebtManagement.
+- DebtManagement.tsx: CommissionDue, TechnicianSalaryDue, WholesalerDue are all manually entered with no sync to Finance.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Two-way synchronization between Finance.tsx `connectionFeeDue` and DebtManagement.tsx `ConnectionFeeDuesSection`
+- Sync 1 (Commission): When CommissionDue form opens in DebtManagement, auto-populate totalCommission with the calculated commission total from Finance (sum across all customers). Display a note that the value is sourced from financial management.
+- Sync 2 (Technician Salary): When an expense with category 'টেকনিশিয়ান বেতন' is saved in Finance, auto-create/update a corresponding TechnicianSalaryDue record in DebtManagement (technicianName=description, dueMonth=month from expense date, dueAmount=amount). When TechnicianSalaryDue is edited/paid in DebtManagement, update the corresponding Finance expense amount.
+- Sync 3 (Wholesaler): When a new expense is added in Finance with product categories (রাউটার, ONU, অপটিক্যাল ফাইবার, স্প্লিটার), auto-create a WholesalerDue entry in DebtManagement (productName=category, description=description, rate=rate, amount=qty×rate, dueBill=amount by default, date=expense date). When WholesalerDue is paid/updated in DebtManagement, reflect dueBill in Finance.
 
 ### Modify
-- **Finance.tsx `handleEditSave`**: After calling `saveFinancial()`, also sync to ConnectionFeeDue backend:
-  - If `dueFee > 0`: upsert (find by cidNumber, update existing or create new) a `ConnectionFeeDue` record
-  - If `dueFee === 0` and an existing record exists: delete it
-  - Preserve existing `dueMonth` if record already exists; otherwise use current Bangla month+year
-- **DebtManagement.tsx `ConnectionFeeDuesSection` `handleSave`**: After saving ConnectionFeeDue, also call `actor.updateCustomerFinancial()` to update the customer's `connectionFeeDue`:
-  - Fetch existing financial overrides first to preserve `connectionFeeCash`
-  - Update `connectionFeeDue` to the new `dueAmount`
+- Finance.tsx: After addExpense/updateExpense for 'টেকনিশিয়ান বেতন' → call actor to create/update TechnicianSalaryDue. After addExpense for product categories → call actor to create WholesalerDue.
+- DebtManagement.tsx CommissionDuesSection: On dialog open (add mode), fetch total calculated commission from customer data and pre-fill totalCommission field. Add a helper to compute total commission using same formula as Finance.
+- DebtManagement.tsx TechnicianSalarySection: On save, also sync to Finance expense (add or update via actor.addExpense/updateExpense with category='টেকনিশিয়ান বেতন').
+- DebtManagement.tsx WholesalerDuesSection: On save (when dueBill > 0), also create/update corresponding Finance expense.
 
 ### Remove
-- Nothing removed
+- Nothing removed.
 
 ## Implementation Plan
-1. In `Finance.tsx`: import `useActor` and get `actor`; in `handleEditSave` after `saveFinancial()`, call `actor.getConnectionFeeDues()`, find by cidNumber, upsert or delete accordingly
-2. In `DebtManagement.tsx` `ConnectionFeeDuesSection.handleSave`: after saving, call `actor.getCustomerFinancials()`, find existing cash amount, call `actor.updateCustomerFinancial()` with preserved cash + new due amount
-3. Link key: `cidNumber` on both sides
+1. Add a shared utility function `calculateTotalCommission(customers)` that both Finance and DebtManagement can use.
+2. In Finance.tsx: after saving an expense, check category and trigger appropriate sync (টেকনিশিয়ান বেতন → TechnicianSalaryDue, product categories → WholesalerDue). Link expense IDs to DebtManagement records via description or a reference field.
+3. In DebtManagement.tsx CommissionDuesSection: On 'নতুন কমিশন যুক্ত করুন' dialog open, fetch all customers from actor and compute total commission, pre-fill the form.
+4. In DebtManagement.tsx TechnicianSalarySection: On save, sync to Finance expenses via actor.
+5. In DebtManagement.tsx WholesalerDuesSection: On save, sync to Finance expenses via actor.
+6. Use expense description or a naming convention (e.g. 'TECH_SYNC:name:month', 'WHOLE_SYNC:id') to match records across modules and avoid duplicates.
