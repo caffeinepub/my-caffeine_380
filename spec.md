@@ -1,42 +1,40 @@
 # নওশীন ব্রডব্যান্ড ইন্টারনেট
 
 ## Current State
-The app has a sidebar with pages: dashboard, customers, finance, debts, notice, network, call, idcard, socialmedia, settings. No "About Us" page exists. The dashboard shows KPI cards. IdCard page generates customer ID cards. NoticePage and SocialMediaPost generate notices/posters.
+Social media poster module has 10 built-in categories with dark gradient backgrounds and abstract canvas decorations (gears, stars, etc). No illustrative/thematic imagery related to each occasion.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New "About Us" page (`AboutUs.tsx`) accessible from the menu bar.
-  - Shows two team members:
-    - প্রতিষ্ঠাতা পরিচালক: মুহাম্মদ মনিরুজ্জামান, Mobile: +8801607930157, Email: nousheen.broadband.internet@gmail.com
-    - টেকনিক্যাল ম্যানেজার: মুহাম্মদ উজ্জল মিয়া, Mobile: +8801648388329, Email: nousheen.broadband.internet@gmail.com
-  - Professional card layout, info icon in menu.
-- New nav item "aboutus" in Layout.tsx navItems and Page type in both Layout.tsx and App.tsx.
-- In Dashboard.tsx: small team info widget (card/banner) showing both persons' names and titles.
+- New built-in categories: আন্তর্জাতিক মাতৃভাষা দিবস, লাইন মেরামত কাজ, বিল রিমাইন্ডার, নিরাপদ ইন্টারনেট সচেতনতা, গ্রাহক প্রশংসা
+- Soft pastel/light gradient backgrounds for all categories (replace dark backgrounds)
+- Canvas-drawn thematic illustrations for each category:
+  - স্বাধীনতা দিবস → Savar Smritisoudho (National Martyrs Monument) drawn with canvas
+  - আন্তর্জাতিক মাতৃভাষা দিবস → Shaheed Minar drawn with canvas
+  - নববর্ষ/পহেলা বৈশাখ → Bangla New Year symbols (alpona, fish, pot)
+  - জরুরি ঘোষণা → Warning/alert icons (triangle, bell, siren)
+  - লাইন মেরামত কাজ → Technician/cable repair illustration
+  - নতুন অফার/বিশেষ অফার → Promotional graphics (ribbon, discount badge, stars)
+  - বিল রিমাইন্ডার → Bill/invoice icon with calendar
+  - নিরাপদ ইন্টারনেট সচেতনতা → Cyber security symbols (shield, lock, wifi)
+  - গ্রাহক প্রশংসা → Gratitude symbols (heart, stars, hands)
+  - ঈদের শুভেচ্ছা → Crescent moon, mosque silhouette
+  - বিজয় দিবস → Victory elements, Bangladesh flag colors
+  - প্রতিষ্ঠাবার্ষিকী → Anniversary cake, ribbons
+  - সাধারণ শুভেচ্ছা → Flowers, celebration
 
 ### Modify
-- `Layout.tsx`: Add "aboutus" to Page type and navItems array (with Info icon, appropriate color).
-- `App.tsx`: Add "aboutus" to Page type, add lazy import of AboutUs, add case in renderPage.
-- `IdCard.tsx`: After the ID card is generated (in the generated card view), add a small footer section below the card showing:
-  - প্রতিষ্ঠাতা পরিচালক: মুহাম্মদ মনিরুজ্জামান (WhatsApp: +8801607930157)
-  - টেকনিক্যাল ম্যানেজার: মুহাম্মদ উজ্জল মিয়া (WhatsApp: +8801648388329)
-  - No email. Small, subtle text below the card.
-- `NoticePage.tsx`: Add a footer line below generated notice text:
-  - তত্ত্বাবধানে: মুহাম্মদ মনিরুজ্জামান
-  - প্রযুক্তিগত সহযোগিতায়: মুহাম্মদ উজ্জল মিয়া
-- `SocialMediaPost.tsx`: Add footer to the poster canvas:
-  - তত্ত্বাবধানে: মুহাম্মদ মনিরুজ্জামান
-  - প্রযুক্তিগত সহযোগিতায়: মুহাম্মদ উজ্জল মিয়া
-- `Dashboard.tsx`: Add a compact team info section (small card or banner at top) showing both members' names and titles.
+- All POSTER_COLORS: change from dark (`from`/`to`) to soft light gradient colors
+- drawDecorations(): completely rewrite to add thematic illustrated drawings per category
+- Background rendering: use soft diagonal or radial gradient (light pastel tones)
 
 ### Remove
-- Nothing removed.
+- Dark/heavy color backgrounds (deep navy, dark red, dark green)
 
 ## Implementation Plan
-1. Create `src/frontend/src/pages/AboutUs.tsx` - professional About Us page with two team member cards.
-2. Update `src/frontend/src/components/Layout.tsx` - add `"aboutus"` to Page type and navItems (use `Info` icon from lucide-react, iconColor `"#6366F1"`).
-3. Update `src/frontend/src/App.tsx` - add `"aboutus"` to Page type, lazy import AboutUs, add case in renderPage.
-4. Update `src/frontend/src/pages/Dashboard.tsx` - add small team info card near top of dashboard.
-5. Update `src/frontend/src/pages/IdCard.tsx` - after generating a card, show small footer below with two team members (name + WhatsApp only, no email).
-6. Update `src/frontend/src/pages/NoticePage.tsx` - add footer text after notice display.
-7. Update `src/frontend/src/pages/SocialMediaPost.tsx` - add footer text to poster canvas/render.
+1. Update POSTER_COLORS to use soft pastel gradient colors per category
+2. Add new category keys: motherlanguage, linemaintenance, billreminder, internetsafety, customerappreciation
+3. Add labels and symbols for new categories
+4. Rewrite drawDecorations() to draw thematic canvas illustrations for all categories
+5. Update background generation to use soft gradient
+6. Ensure all new categories appear in the dropdown
