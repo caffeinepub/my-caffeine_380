@@ -1,40 +1,26 @@
 # নওশীন ব্রডব্যান্ড ইন্টারনেট
 
 ## Current State
-Social media poster module has 10 built-in categories with dark gradient backgrounds and abstract canvas decorations (gears, stars, etc). No illustrative/thematic imagery related to each occasion.
+Full ISP management system (v56+) with Customer Management, Financial Management, Notice Board, Social Media Poster, ID Card, Call Center, Debt Management, Settings, and About Us modules. Customer data stored in localStorage via `useLocalCustomers` hook. Basic service worker exists but only caches `/` and `/index.html`.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New built-in categories: আন্তর্জাতিক মাতৃভাষা দিবস, লাইন মেরামত কাজ, বিল রিমাইন্ডার, নিরাপদ ইন্টারনেট সচেতনতা, গ্রাহক প্রশংসা
-- Soft pastel/light gradient backgrounds for all categories (replace dark backgrounds)
-- Canvas-drawn thematic illustrations for each category:
-  - স্বাধীনতা দিবস → Savar Smritisoudho (National Martyrs Monument) drawn with canvas
-  - আন্তর্জাতিক মাতৃভাষা দিবস → Shaheed Minar drawn with canvas
-  - নববর্ষ/পহেলা বৈশাখ → Bangla New Year symbols (alpona, fish, pot)
-  - জরুরি ঘোষণা → Warning/alert icons (triangle, bell, siren)
-  - লাইন মেরামত কাজ → Technician/cable repair illustration
-  - নতুন অফার/বিশেষ অফার → Promotional graphics (ribbon, discount badge, stars)
-  - বিল রিমাইন্ডার → Bill/invoice icon with calendar
-  - নিরাপদ ইন্টারনেট সচেতনতা → Cyber security symbols (shield, lock, wifi)
-  - গ্রাহক প্রশংসা → Gratitude symbols (heart, stars, hands)
-  - ঈদের শুভেচ্ছা → Crescent moon, mosque silhouette
-  - বিজয় দিবস → Victory elements, Bangladesh flag colors
-  - প্রতিষ্ঠাবার্ষিকী → Anniversary cake, ribbons
-  - সাধারণ শুভেচ্ছা → Flowers, celebration
+- Enhanced Service Worker (`sw.js`) with cache-first strategy for JS/CSS/image assets and network-first for HTML/API
+- `useOfflineStatus` hook to detect online/offline state
+- Offline banner in Customer Management page showing amber alert when no internet
 
 ### Modify
-- All POSTER_COLORS: change from dark (`from`/`to`) to soft light gradient colors
-- drawDecorations(): completely rewrite to add thematic illustrated drawings per category
-- Background rendering: use soft diagonal or radial gradient (light pastel tones)
+- `main.tsx`: Register service worker with update detection
+- `Customers.tsx`: Import and use `useOfflineStatus`, show offline indicator banner
+- `sw.js`: Full rewrite with dynamic asset caching, cache versioning, old cache cleanup
 
 ### Remove
-- Dark/heavy color backgrounds (deep navy, dark red, dark green)
+- Nothing removed
 
 ## Implementation Plan
-1. Update POSTER_COLORS to use soft pastel gradient colors per category
-2. Add new category keys: motherlanguage, linemaintenance, billreminder, internetsafety, customerappreciation
-3. Add labels and symbols for new categories
-4. Rewrite drawDecorations() to draw thematic canvas illustrations for all categories
-5. Update background generation to use soft gradient
-6. Ensure all new categories appear in the dropdown
+1. Rewrite `sw.js` with cache-first for static assets, network-first for API/HTML, skipWaiting on update
+2. Create `useOfflineStatus.ts` hook using navigator.onLine + online/offline events
+3. Update `main.tsx` to register SW with update detection
+4. Update `Customers.tsx` to show offline banner using useOfflineStatus
+5. Validate and deploy

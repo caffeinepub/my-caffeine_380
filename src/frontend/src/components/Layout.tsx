@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  ArrowLeft,
   ArrowLeftRight,
   Bell,
   Cable,
@@ -26,7 +27,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
@@ -163,12 +164,6 @@ export default function Layout({
   const { identity } = useInternetIdentity();
   const { settings } = useCompanySettings();
 
-  useEffect(() => {
-    if (window.innerWidth >= 1024) {
-      setSidebarOpen(true);
-    }
-  }, []);
-
   const displayName = isSuperAdmin
     ? identity
       ? `${identity.getPrincipal().toString().slice(0, 8)}...`
@@ -181,9 +176,7 @@ export default function Layout({
 
   function handleNavigate(page: Page) {
     onNavigate(page);
-    if (window.innerWidth < 1024) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(false);
   }
 
   function closeBackdrop() {
@@ -201,7 +194,7 @@ export default function Layout({
         <button
           type="button"
           aria-label="সাইডবার বন্ধ করুন"
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden cursor-default"
+          className="fixed inset-0 z-40 bg-black/50 cursor-default"
           onClick={closeBackdrop}
         />
       )}
@@ -352,6 +345,19 @@ export default function Layout({
           >
             <Menu size={20} />
           </Button>
+
+          {currentPage !== "dashboard" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 px-2 text-sm"
+              onClick={() => onNavigate("dashboard")}
+              data-ocid="nav.back.button"
+            >
+              <ArrowLeft size={16} />
+              <span>ব্যাক</span>
+            </Button>
+          )}
 
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {currentNavItem && (

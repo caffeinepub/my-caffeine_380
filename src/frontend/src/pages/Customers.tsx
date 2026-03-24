@@ -31,6 +31,7 @@ import {
   Search,
   Trash2,
   Upload,
+  WifiOff,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ import { normalizeAddress, toTitleCase } from "../data/addressNormalization";
 import { VILLAGES } from "../data/sampleData";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
+import { useOfflineStatus } from "../hooks/useOfflineStatus";
 import { usePackages } from "../hooks/useQueries";
 import type { ExtendedCustomer } from "../types/extended";
 import { printDocument } from "../utils/printDocument";
@@ -183,6 +185,7 @@ export default function Customers({ isAdmin = false }: CustomersProps) {
     updateCustomer,
     deleteCustomer,
   } = useLocalCustomers();
+  const isOffline = useOfflineStatus();
   const { data: packages } = usePackages();
   const { settings } = useCompanySettings();
   const isLoading = false;
@@ -437,6 +440,18 @@ export default function Customers({ isAdmin = false }: CustomersProps) {
 
   return (
     <div className="space-y-4" data-ocid="customers.page">
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-4 py-3">
+          <WifiOff size={18} className="shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">অফলাইন মোড</p>
+            <p className="text-xs mt-0.5">
+              ইন্টারনেট সংযোগ নেই। গ্রাহক তালিকা থেকে সার্চ করা যাবে — ডেটা ডিভাইসে সেভ আছে।
+            </p>
+          </div>
+        </div>
+      )}
       {/* Village filter */}
       <div className="flex flex-wrap gap-4 items-center bg-muted/30 border border-border rounded-lg px-4 py-3">
         {VILLAGES.map((v) => (
