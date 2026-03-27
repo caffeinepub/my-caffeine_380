@@ -20,15 +20,18 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Moon,
   Phone,
   Settings,
   Share2,
   Shield,
+  Sun,
   Users,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { useCompanySettings } from "../hooks/useCompanySettings";
+import { useDarkMode } from "../hooks/useDarkMode";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 type Page =
@@ -163,6 +166,7 @@ export default function Layout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { identity } = useInternetIdentity();
   const { settings } = useCompanySettings();
+  const { isDark, toggle: toggleDark } = useDarkMode();
 
   const displayName = isSuperAdmin
     ? identity
@@ -335,7 +339,7 @@ export default function Layout({
 
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0 w-full">
-        <header className="flex items-center gap-4 px-6 bg-white border-b border-border h-14 shrink-0">
+        <header className="flex items-center gap-4 px-6 bg-background border-b border-border h-14 shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -407,6 +411,16 @@ export default function Layout({
             <Button
               variant="ghost"
               size="sm"
+              className="p-2"
+              onClick={toggleDark}
+              data-ocid="header.darkmode.toggle"
+              title={isDark ? "লাইট মোড" : "ডার্ক মোড"}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className="p-2 relative"
               data-ocid="header.notification.button"
             >
@@ -472,7 +486,7 @@ export default function Layout({
         </main>
 
         {/* Mobile bottom tab bar */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-white border-t border-border h-16 shadow-lg">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around bg-background border-t border-border h-16 shadow-lg">
           {mobileTabItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;

@@ -47,6 +47,46 @@
     --sidebar-ring: 0.541 0.213 262.9;
   }
 
+  .dark {
+    --background: 0.13 0.02 252;
+    --foreground: 0.95 0.005 252;
+    --card: 0.18 0.025 252;
+    --card-foreground: 0.95 0.005 252;
+    --popover: 0.18 0.025 252;
+    --popover-foreground: 0.95 0.005 252;
+    --primary: 0.6 0.213 262.9;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.22 0.03 252;
+    --secondary-foreground: 0.95 0.005 252;
+    --muted: 0.22 0.03 252;
+    --muted-foreground: 0.65 0.015 252;
+    --accent: 0.25 0.04 262.9;
+    --accent-foreground: 0.85 0.015 262.9;
+    --destructive: 0.65 0.218 22.0;
+    --destructive-foreground: 1 0 0;
+    --success: 0.72 0.191 142.5;
+    --success-foreground: 1 0 0;
+    --warning: 0.75 0.188 70.08;
+    --warning-foreground: 0.15 0.015 252;
+    --border: 0.28 0.03 252;
+    --input: 0.25 0.03 252;
+    --ring: 0.6 0.213 262.9;
+    --chart-1: 0.65 0.18 262.9;
+    --chart-2: 0.65 0.18 142.5;
+    --chart-3: 0.7 0.2 22.0;
+    --chart-4: 0.72 0.18 70.08;
+    --chart-5: 0.65 0.22 303.9;
+    /* Sidebar stays dark navy - consistent across light/dark */
+    --sidebar: 0.1 0.035 252;
+    --sidebar-foreground: 0.922 0.006 252;
+    --sidebar-primary: 0.6 0.213 262.9;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.18 0.04 252;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.18 0.04 252;
+    --sidebar-ring: 0.6 0.213 262.9;
+  }
+
   * {
     @apply border-border;
   }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Expense as BackendExpense } from "../backend";
+import { addToSyncQueue } from "../lib/offlineSyncQueue";
 import { useActor } from "./useActor";
 
 export interface Expense {
@@ -126,10 +127,24 @@ export function useExpenses() {
         return updated;
       });
 
-      // Persist to backend in background
+      // Persist to backend in background; queue if offline
       if (actor) {
         Promise.resolve().then(() => {
-          actor.addExpense(toBackendExpense(newExpense!)).catch(() => {});
+          actor.addExpense(toBackendExpense(newExpense!)).catch(() => {
+            // Backend failed — add to sync queue
+            addToSyncQueue({
+              type: "addExpense",
+              payload: toBackendExpense(newExpense!),
+            });
+          });
+        });
+      } else {
+        // Offline — add to sync queue immediately
+        Promise.resolve().then(() => {
+          addToSyncQueue({
+            type: "addExpense",
+            payload: toBackendExpense(newExpense!),
+          });
         });
       }
     },
@@ -145,7 +160,17 @@ export function useExpenses() {
       });
 
       if (actor) {
-        actor.updateExpense(toBackendExpense(updated)).catch(() => {});
+        actor.updateExpense(toBackendExpense(updated)).catch(() => {
+          addToSyncQueue({
+            type: "updateExpense",
+            payload: toBackendExpense(updated),
+          });
+        });
+      } else {
+        addToSyncQueue({
+          type: "updateExpense",
+          payload: toBackendExpense(updated),
+        });
       }
     },
     [actor],
@@ -160,7 +185,11 @@ export function useExpenses() {
       });
 
       if (actor) {
-        actor.deleteExpense(id).catch(() => {});
+        actor.deleteExpense(id).catch(() => {
+          addToSyncQueue({ type: "deleteExpense", payload: id });
+        });
+      } else {
+        addToSyncQueue({ type: "deleteExpense", payload: id });
       }
     },
     [actor],

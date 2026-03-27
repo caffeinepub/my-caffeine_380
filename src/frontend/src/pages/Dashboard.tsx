@@ -284,7 +284,7 @@ export default function Dashboard({
       {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-blue-500/30 dark:shadow-blue-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.1"
         >
           <CardContent className="pt-5 pb-5">
@@ -306,7 +306,7 @@ export default function Dashboard({
         </Card>
 
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-teal-500/30 dark:shadow-teal-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.2"
         >
           <CardContent className="pt-5 pb-5">
@@ -330,7 +330,7 @@ export default function Dashboard({
         </Card>
 
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-green-500/30 dark:shadow-green-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.3"
         >
           <CardContent className="pt-5 pb-5">
@@ -354,7 +354,7 @@ export default function Dashboard({
         </Card>
 
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-red-500/30 dark:shadow-red-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.4"
         >
           <CardContent className="pt-5 pb-5">
@@ -381,7 +381,7 @@ export default function Dashboard({
       {/* Secondary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-violet-500/30 dark:shadow-violet-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.5"
         >
           <CardContent className="pt-5 pb-5">
@@ -404,7 +404,7 @@ export default function Dashboard({
           </CardContent>
         </Card>
         <Card
-          className="shadow-card border-border"
+          className="shadow-card border-border dark:border-orange-500/30 dark:shadow-orange-500/10 dark:shadow-md"
           data-ocid="dashboard.kpi.item.6"
         >
           <CardContent className="pt-5 pb-5">

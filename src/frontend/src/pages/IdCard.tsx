@@ -4,20 +4,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AlertCircle,
   Bell,
+  CalendarDays,
   CreditCard,
   Download,
   Loader2,
   MessageCircle,
   MessageSquare,
+  Pencil,
   Printer,
   Search,
   Star,
   User,
+  Users,
+  X,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCompanySettings } from "../hooks/useCompanySettings";
+import { useExpiryDates } from "../hooks/useExpiryDates";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
 import { usePackages } from "../hooks/useQueries";
 import type { ExtendedCustomer } from "../types/extended";
@@ -559,6 +565,13 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
   const [isGenerated, setIsGenerated] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"idcard" | "expired">("idcard");
+  const [expiredSearch, setExpiredSearch] = useState("");
+  const [editingExpiryId, setEditingExpiryId] = useState<string | null>(null);
+  const [editingExpiryDate, setEditingExpiryDate] = useState("");
+  const [bulkSendIndex, setBulkSendIndex] = useState<number | null>(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const { getExpiryDate, setExpiryDate } = useExpiryDates();
   const cardRef = useRef<HTMLDivElement>(null);
 
   function toggleVillage(v: string) {
@@ -740,6 +753,71 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
   const orgName = settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট";
   const orgAddress = settings.address || "";
 
+  // Expired customers logic
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const allExpiredCustomers = customers
+    .filter((c) => {
+      const expiry = new Date(getExpiryDate(c.id, c.connectionDate));
+      expiry.setHours(0, 0, 0, 0);
+      return expiry < today;
+    })
+    .sort((a, b) => {
+      const da = new Date(getExpiryDate(a.id, a.connectionDate)).getTime();
+      const db = new Date(getExpiryDate(b.id, b.connectionDate)).getTime();
+      return da - db;
+    });
+
+  const filteredExpiredCustomers = allExpiredCustomers.filter((c) => {
+    const q = expiredSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (c.username ?? "").toLowerCase().includes(q) ||
+      (c.cidNumber ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").includes(q)
+    );
+  });
+
+  function buildExpiredMessage(c: ExtendedCustomer): string {
+    const p = getPackage(c);
+    return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।\nআপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${c.cidNumber || ""} এবং মোবাইল নম্বর ${c.phone} ব্যবহার করে আজই রিচার্জ করুন।\nআপনার প্যাকেজটি ${p?.speed || ""} এমবিপিএস এবং মাসিক বিল ${c.monthlyFee ?? 0} টাকা।`;
+  }
+
+  function openExpiredWhatsApp(c: ExtendedCustomer) {
+    const phone = normalizeWhatsAppPhone(c.phone);
+    const msg = buildExpiredMessage(c);
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+      "_blank",
+    );
+  }
+
+  function openExpiredSMS(c: ExtendedCustomer) {
+    const phone = c.phone.replace(/\D/g, "");
+    const msg = buildExpiredMessage(c);
+    window.open(`sms:${phone}?body=${encodeURIComponent(msg)}`, "_blank");
+  }
+
+  function startBulkSend() {
+    if (filteredExpiredCustomers.length === 0) return;
+    setBulkSendIndex(0);
+    setShowBulkModal(true);
+    openExpiredWhatsApp(filteredExpiredCustomers[0]);
+  }
+
+  function nextBulkSend() {
+    if (bulkSendIndex === null) return;
+    const next = bulkSendIndex + 1;
+    if (next < filteredExpiredCustomers.length) {
+      setBulkSendIndex(next);
+      openExpiredWhatsApp(filteredExpiredCustomers[next]);
+    } else {
+      setShowBulkModal(false);
+      setBulkSendIndex(null);
+    }
+  }
+
   return (
     <>
       <style>{`
@@ -794,398 +872,821 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
           </div>
         </div>
 
-        {/* Village filter */}
-        <Card
-          className="shadow-card border-border"
-          data-ocid="idcard.filter.card"
+        {/* Tab Switcher */}
+        <div
+          className="flex gap-1 p-1 rounded-xl"
+          style={{ background: "rgba(10,36,99,0.07)" }}
         >
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              গ্রাম ফিল্টার
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex flex-wrap gap-3">
-              {VILLAGES.map((v) => (
-                <div key={v} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`idcard-village-${v}`}
-                    checked={selectedVillages.has(v)}
-                    onCheckedChange={() => toggleVillage(v)}
-                    data-ocid="idcard.filter.checkbox"
-                  />
-                  <Label
-                    htmlFor={`idcard-village-${v}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {v}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Search */}
-        <div className="relative">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="নাম, কার্নিভাল আইডি বা সিআইডি নম্বর দিয়ে সার্চ করুন..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setShowSuggestions(true);
-                if (!e.target.value.trim()) {
-                  setSelectedCustomer(null);
-                  setIsGenerated(false);
+          <button
+            type="button"
+            onClick={() => setActiveTab("idcard")}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+            style={
+              activeTab === "idcard"
+                ? {
+                    background: "#0a2463",
+                    color: "#d4af37",
+                    boxShadow: "0 2px 8px rgba(10,36,99,0.25)",
+                  }
+                : { color: "#0a2463" }
+            }
+            data-ocid="idcard.tab"
+          >
+            <CreditCard className="w-4 h-4" />
+            আইডি কার্ড
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("expired")}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+            style={
+              activeTab === "expired"
+                ? {
+                    background: "#dc2626",
+                    color: "#ffffff",
+                    boxShadow: "0 2px 8px rgba(220,38,38,0.25)",
+                  }
+                : { color: "#dc2626" }
+            }
+            data-ocid="idcard.expired.tab"
+          >
+            <AlertCircle className="w-4 h-4" />
+            মেয়াদ উত্তীর্ণ গ্রাহক
+            {allExpiredCustomers.length > 0 && (
+              <span
+                className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                style={
+                  activeTab === "expired"
+                    ? { background: "rgba(255,255,255,0.25)", color: "#fff" }
+                    : { background: "#dc2626", color: "#fff" }
                 }
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              data-ocid="idcard.search_input"
-            />
-          </div>
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-              {suggestions.slice(0, 8).map((c) => (
-                <button
-                  key={c.id.toString()}
-                  type="button"
-                  className="w-full text-left px-4 py-2.5 hover:bg-muted/50 transition-colors text-sm flex items-center justify-between"
-                  onMouseDown={() => selectCustomer(c)}
-                >
-                  <span className="font-medium">{c.username}</span>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {c.cidNumber || c.carnivalId}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+              >
+                {allExpiredCustomers.length}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Main content area */}
-        {selectedCustomer ? (
-          <div className="space-y-4">
-            {/* Generate button — shown before generation */}
-            {!isGenerated && (
+        {activeTab === "idcard" && (
+          <div className="space-y-6">
+            {/* Village filter */}
+            <Card
+              className="shadow-card border-border"
+              data-ocid="idcard.filter.card"
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  গ্রাম ফিল্টার
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-3">
+                  {VILLAGES.map((v) => (
+                    <div key={v} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`idcard-village-${v}`}
+                        checked={selectedVillages.has(v)}
+                        onCheckedChange={() => toggleVillage(v)}
+                        data-ocid="idcard.filter.checkbox"
+                      />
+                      <Label
+                        htmlFor={`idcard-village-${v}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {v}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Search */}
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="নাম, কার্নিভাল আইডি বা সিআইডি নম্বর দিয়ে সার্চ করুন..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setShowSuggestions(true);
+                    if (!e.target.value.trim()) {
+                      setSelectedCustomer(null);
+                      setIsGenerated(false);
+                    }
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowSuggestions(false), 150)
+                  }
+                  data-ocid="idcard.search_input"
+                />
+              </div>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                  {suggestions.slice(0, 8).map((c) => (
+                    <button
+                      key={c.id.toString()}
+                      type="button"
+                      className="w-full text-left px-4 py-2.5 hover:bg-muted/50 transition-colors text-sm flex items-center justify-between"
+                      onMouseDown={() => selectCustomer(c)}
+                    >
+                      <span className="font-medium">{c.username}</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {c.cidNumber || c.carnivalId}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Main content area */}
+            {selectedCustomer ? (
+              <div className="space-y-4">
+                {/* Generate button — shown before generation */}
+                {!isGenerated && (
+                  <div
+                    className="flex flex-col items-center justify-center py-10 gap-4"
+                    data-ocid="idcard.generate.panel"
+                  >
+                    <div
+                      className="p-4 rounded-full"
+                      style={{ background: "rgba(10,36,99,0.08)" }}
+                    >
+                      <CreditCard
+                        className="w-10 h-10"
+                        style={{ color: "#0a2463" }}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p
+                        className="font-semibold text-sm"
+                        style={{ color: "#0a2463" }}
+                      >
+                        {selectedCustomer.username}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        আইডি কার্ড জেনারেট করতে নিচের বাটনে ক্লিক করুন
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleGenerate}
+                      size="lg"
+                      className="gap-2 font-bold px-8 py-3 text-base"
+                      style={{
+                        background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
+                        color: "#d4af37",
+                        boxShadow: "0 4px 16px rgba(10,36,99,0.3)",
+                      }}
+                      data-ocid="idcard.primary_button"
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      Generate আইডি কার্ড
+                    </Button>
+                  </div>
+                )}
+
+                {/* After generation: ID cards + info + notification */}
+                {isGenerated && (
+                  <div ref={cardRef} className="space-y-4">
+                    {/* Download/Print toolbar */}
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <h3
+                        className="text-sm font-semibold"
+                        style={{ color: "#0a2463" }}
+                      >
+                        {selectedCustomer.username} এর আইডি কার্ড
+                      </h3>
+                      <div className="flex gap-2 flex-wrap">
+                        {isAdmin && (
+                          <Button
+                            onClick={downloadFront}
+                            disabled={isDownloading}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            data-ocid="idcard.front.button"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            ফ্রন্ট ডাউনলোড
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            onClick={downloadBack}
+                            disabled={isDownloading}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            data-ocid="idcard.back.button"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            ব্যাক ডাউনলোড
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            onClick={downloadCombinedA4}
+                            disabled={isDownloading}
+                            size="sm"
+                            className="gap-1.5 font-semibold"
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #0a2463, #1c3f8c)",
+                              color: "#d4af37",
+                            }}
+                            data-ocid="idcard.a4.button"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Star className="w-3.5 h-3.5" />
+                            )}
+                            A4 একসাথে ডাউনলোড
+                          </Button>
+                        )}
+                        {isAdmin && (
+                          <Button
+                            onClick={downloadPDF}
+                            disabled={isDownloading}
+                            size="sm"
+                            className="gap-1.5 font-semibold"
+                            style={{ background: "#c0392b", color: "#ffffff" }}
+                            data-ocid="idcard.pdf.button"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
+                            PDF ডাউনলোড
+                          </Button>
+                        )}
+                        <Button
+                          onClick={handlePrint}
+                          size="sm"
+                          className="gap-1.5"
+                          style={{ background: "#0a2463" }}
+                          data-ocid="idcard.print.button"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          প্রিন্ট করুন
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* NID Cards */}
+                    <div className="flex flex-col lg:flex-row gap-6 items-start">
+                      <NIDCardFront
+                        customer={selectedCustomer}
+                        pkg={pkg}
+                        orgName={orgName}
+                        orgAddress={orgAddress}
+                        logo={settings.logo}
+                      />
+                      <NIDCardBack />
+                    </div>
+
+                    {/* Customer Info + Contact Buttons Card */}
+                    <Card
+                      className="border-border shadow-card"
+                      data-ocid="idcard.info.card"
+                    >
+                      <CardHeader className="pb-3">
+                        <CardTitle
+                          className="text-sm font-semibold flex items-center gap-2"
+                          style={{ color: "#0a2463" }}
+                        >
+                          <User className="w-4 h-4" />
+                          গ্রাহকের তথ্য ও যোগাযোগ
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                          {/* Info list on the left */}
+                          <div className="flex-1 space-y-2">
+                            <CustomerInfoRow
+                              label="নাম"
+                              value={selectedCustomer.username}
+                            />
+                            <CustomerInfoRow
+                              label="সিআইডি নম্বর"
+                              value={selectedCustomer.cidNumber || "—"}
+                              mono
+                            />
+                            <CustomerInfoRow
+                              label="কার্নিভাল আইডি"
+                              value={selectedCustomer.carnivalId || "—"}
+                              mono
+                            />
+                            <CustomerInfoRow
+                              label="ঠিকানা"
+                              value={
+                                selectedCustomer.address ||
+                                selectedCustomer.village ||
+                                "—"
+                              }
+                            />
+                            <CustomerInfoRow
+                              label="মোবাইল নম্বর"
+                              value={selectedCustomer.phone}
+                              mono
+                            />
+                            <CustomerInfoRow
+                              label="প্যাকেজ"
+                              value={pkg?.speed || "—"}
+                            />
+                            <CustomerInfoRow
+                              label="মাসিক বিল"
+                              value={`৳${selectedCustomer.monthlyFee ?? 0}`}
+                            />
+                          </div>
+
+                          {/* Contact buttons on the right */}
+                          <div className="flex sm:flex-col gap-2 flex-wrap">
+                            <Button
+                              onClick={shareWhatsApp}
+                              size="sm"
+                              className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                              style={{ background: "#25D366" }}
+                              data-ocid="idcard.whatsapp.button"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              WhatsApp
+                            </Button>
+                            <Button
+                              onClick={shareImo}
+                              size="sm"
+                              className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                              style={{ background: "#4f46e5" }}
+                              data-ocid="idcard.imo.button"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              ইমো (Imo)
+                            </Button>
+                            <Button
+                              onClick={shareSMS}
+                              size="sm"
+                              className="gap-2 font-semibold text-white min-w-[120px] justify-start"
+                              style={{ background: "#0284c7" }}
+                              data-ocid="idcard.sms.button"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              সিমে মেসেজ
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Recharge Notification Card */}
+                    <Card
+                      className="border-border shadow-card"
+                      style={{ borderLeft: "4px solid #d4af37" }}
+                      data-ocid="idcard.notification.card"
+                    >
+                      <CardHeader className="pb-3">
+                        <CardTitle
+                          className="text-sm font-semibold flex items-center gap-2"
+                          style={{ color: "#0a2463" }}
+                        >
+                          <Bell
+                            className="w-4 h-4"
+                            style={{ color: "#d4af37" }}
+                          />
+                          রিচার্জ রিমাইন্ডার
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          গ্রাহককে রিচার্জের জন্য নোটিফিকেশন পাঠান
+                        </p>
+                      </CardHeader>
+                      <CardContent className="pt-0 space-y-4">
+                        {/* Message preview */}
+                        <div
+                          className="p-3 rounded-lg text-xs text-muted-foreground"
+                          style={{
+                            background: "rgba(10,36,99,0.04)",
+                            border: "1px solid rgba(10,36,99,0.1)",
+                          }}
+                        >
+                          <p
+                            className="font-semibold text-xs mb-1"
+                            style={{ color: "#0a2463" }}
+                          >
+                            বার্তার নমুনা:
+                          </p>
+                          <p className="leading-relaxed whitespace-pre-line">
+                            {buildShareMessage(selectedCustomer)}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    {/* Team Info Footer */}
+                    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
+                      <p>
+                        <span className="font-semibold">প্রতিষ্ঠাতা পরিচালক:</span>{" "}
+                        মুহাম্মদ মনিরুজ্জামান | WhatsApp: +8801607930157
+                      </p>
+                      <p>
+                        <span className="font-semibold">টেকনিক্যাল ম্যানেজার:</span>{" "}
+                        মুহাম্মদ উজ্জল মিয়া | WhatsApp: +8801648388329
+                      </p>
+                    </div>
+
+                    {/* Expiry Date Section */}
+                    <Card
+                      className="border-border shadow-card"
+                      style={{ borderLeft: "4px solid #d4af37" }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div className="flex items-center gap-2">
+                            <CalendarDays
+                              className="w-4 h-4"
+                              style={{ color: "#d4af37" }}
+                            />
+                            <div>
+                              <p className="text-xs text-muted-foreground">
+                                মেয়াদ উত্তীর্ণ তারিখ
+                              </p>
+                              <p
+                                className="text-sm font-semibold"
+                                style={{ color: "#0a2463" }}
+                              >
+                                {getExpiryDate(
+                                  selectedCustomer.id,
+                                  selectedCustomer.connectionDate,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          {editingExpiryId === `card-${selectedCustomer.id}` ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                className="text-sm border border-border rounded px-2 py-1"
+                                value={editingExpiryDate}
+                                onChange={(e) =>
+                                  setEditingExpiryDate(e.target.value)
+                                }
+                                data-ocid="idcard.expiry.input"
+                              />
+                              <Button
+                                size="sm"
+                                style={{
+                                  background: "#0a2463",
+                                  color: "#d4af37",
+                                }}
+                                onClick={() => {
+                                  if (editingExpiryDate) {
+                                    setExpiryDate(
+                                      selectedCustomer.id,
+                                      editingExpiryDate,
+                                    );
+                                  }
+                                  setEditingExpiryId(null);
+                                }}
+                                data-ocid="idcard.expiry.save_button"
+                              >
+                                সেভ
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingExpiryId(null)}
+                                data-ocid="idcard.expiry.cancel_button"
+                              >
+                                বাদ
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => {
+                                setEditingExpiryId(
+                                  `card-${selectedCustomer.id}`,
+                                );
+                                setEditingExpiryDate(
+                                  getExpiryDate(
+                                    selectedCustomer.id,
+                                    selectedCustomer.connectionDate,
+                                  ),
+                                );
+                              }}
+                              data-ocid="idcard.expiry.edit_button"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              আপডেট করুন
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            ) : (
               <div
-                className="flex flex-col items-center justify-center py-10 gap-4"
-                data-ocid="idcard.generate.panel"
+                className="flex flex-col items-center justify-center py-20 text-center"
+                data-ocid="idcard.empty_state"
               >
                 <div
-                  className="p-4 rounded-full"
+                  className="p-5 rounded-full mb-4"
                   style={{ background: "rgba(10,36,99,0.08)" }}
                 >
                   <CreditCard
                     className="w-10 h-10"
-                    style={{ color: "#0a2463" }}
+                    style={{ color: "#0a2463", opacity: 0.5 }}
                   />
                 </div>
-                <div className="text-center">
-                  <p
-                    className="font-semibold text-sm"
-                    style={{ color: "#0a2463" }}
-                  >
-                    {selectedCustomer.username}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    আইডি কার্ড জেনারেট করতে নিচের বাটনে ক্লিক করুন
-                  </p>
-                </div>
-                <Button
-                  onClick={handleGenerate}
-                  size="lg"
-                  className="gap-2 font-bold px-8 py-3 text-base"
-                  style={{
-                    background: "linear-gradient(135deg, #0a2463, #1c3f8c)",
-                    color: "#d4af37",
-                    boxShadow: "0 4px 16px rgba(10,36,99,0.3)",
-                  }}
-                  data-ocid="idcard.primary_button"
-                >
-                  <CreditCard className="w-5 h-5" />
-                  Generate আইডি কার্ড
-                </Button>
-              </div>
-            )}
-
-            {/* After generation: ID cards + info + notification */}
-            {isGenerated && (
-              <div ref={cardRef} className="space-y-4">
-                {/* Download/Print toolbar */}
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <h3
-                    className="text-sm font-semibold"
-                    style={{ color: "#0a2463" }}
-                  >
-                    {selectedCustomer.username} এর আইডি কার্ড
-                  </h3>
-                  <div className="flex gap-2 flex-wrap">
-                    {isAdmin && (
-                      <Button
-                        onClick={downloadFront}
-                        disabled={isDownloading}
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        data-ocid="idcard.front.button"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        ফ্রন্ট ডাউনলোড
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        onClick={downloadBack}
-                        disabled={isDownloading}
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        data-ocid="idcard.back.button"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        ব্যাক ডাউনলোড
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        onClick={downloadCombinedA4}
-                        disabled={isDownloading}
-                        size="sm"
-                        className="gap-1.5 font-semibold"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #0a2463, #1c3f8c)",
-                          color: "#d4af37",
-                        }}
-                        data-ocid="idcard.a4.button"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Star className="w-3.5 h-3.5" />
-                        )}
-                        A4 একসাথে ডাউনলোড
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        onClick={downloadPDF}
-                        disabled={isDownloading}
-                        size="sm"
-                        className="gap-1.5 font-semibold"
-                        style={{ background: "#c0392b", color: "#ffffff" }}
-                        data-ocid="idcard.pdf.button"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5" />
-                        )}
-                        PDF ডাউনলোড
-                      </Button>
-                    )}
-                    <Button
-                      onClick={handlePrint}
-                      size="sm"
-                      className="gap-1.5"
-                      style={{ background: "#0a2463" }}
-                      data-ocid="idcard.print.button"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      প্রিন্ট করুন
-                    </Button>
-                  </div>
-                </div>
-
-                {/* NID Cards */}
-                <div className="flex flex-col lg:flex-row gap-6 items-start">
-                  <NIDCardFront
-                    customer={selectedCustomer}
-                    pkg={pkg}
-                    orgName={orgName}
-                    orgAddress={orgAddress}
-                    logo={settings.logo}
-                  />
-                  <NIDCardBack />
-                </div>
-
-                {/* Customer Info + Contact Buttons Card */}
-                <Card
-                  className="border-border shadow-card"
-                  data-ocid="idcard.info.card"
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: "#0a2463" }}
-                    >
-                      <User className="w-4 h-4" />
-                      গ্রাহকের তথ্য ও যোগাযোগ
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      {/* Info list on the left */}
-                      <div className="flex-1 space-y-2">
-                        <CustomerInfoRow
-                          label="নাম"
-                          value={selectedCustomer.username}
-                        />
-                        <CustomerInfoRow
-                          label="সিআইডি নম্বর"
-                          value={selectedCustomer.cidNumber || "—"}
-                          mono
-                        />
-                        <CustomerInfoRow
-                          label="কার্নিভাল আইডি"
-                          value={selectedCustomer.carnivalId || "—"}
-                          mono
-                        />
-                        <CustomerInfoRow
-                          label="ঠিকানা"
-                          value={
-                            selectedCustomer.address ||
-                            selectedCustomer.village ||
-                            "—"
-                          }
-                        />
-                        <CustomerInfoRow
-                          label="মোবাইল নম্বর"
-                          value={selectedCustomer.phone}
-                          mono
-                        />
-                        <CustomerInfoRow
-                          label="প্যাকেজ"
-                          value={pkg?.speed || "—"}
-                        />
-                        <CustomerInfoRow
-                          label="মাসিক বিল"
-                          value={`৳${selectedCustomer.monthlyFee ?? 0}`}
-                        />
-                      </div>
-
-                      {/* Contact buttons on the right */}
-                      <div className="flex sm:flex-col gap-2 flex-wrap">
-                        <Button
-                          onClick={shareWhatsApp}
-                          size="sm"
-                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
-                          style={{ background: "#25D366" }}
-                          data-ocid="idcard.whatsapp.button"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          WhatsApp
-                        </Button>
-                        <Button
-                          onClick={shareImo}
-                          size="sm"
-                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
-                          style={{ background: "#4f46e5" }}
-                          data-ocid="idcard.imo.button"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          ইমো (Imo)
-                        </Button>
-                        <Button
-                          onClick={shareSMS}
-                          size="sm"
-                          className="gap-2 font-semibold text-white min-w-[120px] justify-start"
-                          style={{ background: "#0284c7" }}
-                          data-ocid="idcard.sms.button"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          সিমে মেসেজ
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recharge Notification Card */}
-                <Card
-                  className="border-border shadow-card"
-                  style={{ borderLeft: "4px solid #d4af37" }}
-                  data-ocid="idcard.notification.card"
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: "#0a2463" }}
-                    >
-                      <Bell className="w-4 h-4" style={{ color: "#d4af37" }} />
-                      রিচার্জ রিমাইন্ডার
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      গ্রাহককে রিচার্জের জন্য নোটিফিকেশন পাঠান
-                    </p>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-4">
-                    {/* Message preview */}
-                    <div
-                      className="p-3 rounded-lg text-xs text-muted-foreground"
-                      style={{
-                        background: "rgba(10,36,99,0.04)",
-                        border: "1px solid rgba(10,36,99,0.1)",
-                      }}
-                    >
-                      <p
-                        className="font-semibold text-xs mb-1"
-                        style={{ color: "#0a2463" }}
-                      >
-                        বার্তার নমুনা:
-                      </p>
-                      <p className="leading-relaxed whitespace-pre-line">
-                        {buildShareMessage(selectedCustomer)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Team Info Footer */}
-                <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
-                  <p>
-                    <span className="font-semibold">প্রতিষ্ঠাতা পরিচালক:</span> মুহাম্মদ
-                    মনিরুজ্জামান | WhatsApp: +8801607930157
-                  </p>
-                  <p>
-                    <span className="font-semibold">টেকনিক্যাল ম্যানেজার:</span>{" "}
-                    মুহাম্মদ উজ্জল মিয়া | WhatsApp: +8801648388329
-                  </p>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  উপরের সার্চ বক্সে গ্রাহক খুঁজুন
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  গ্রাহকের নামে ক্লিক করলে Generate বাটন দেখাবে
+                </p>
               </div>
             )}
           </div>
-        ) : (
-          <div
-            className="flex flex-col items-center justify-center py-20 text-center"
-            data-ocid="idcard.empty_state"
-          >
-            <div
-              className="p-5 rounded-full mb-4"
-              style={{ background: "rgba(10,36,99,0.08)" }}
+        )}
+
+        {/* ===== Expired Customers Tab ===== */}
+        {activeTab === "expired" && (
+          <div className="space-y-4" data-ocid="idcard.expired.panel">
+            {/* Expired panel header */}
+            <Card
+              className="border-red-200 shadow-card"
+              style={{ borderLeft: "4px solid #dc2626" }}
             >
-              <CreditCard
-                className="w-10 h-10"
-                style={{ color: "#0a2463", opacity: 0.5 }}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              উপরের সার্চ বক্সে গ্রাহক খুঁজুন
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              গ্রাহকের নামে ক্লিক করলে Generate বাটন দেখাবে
-            </p>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-700">
+                  <AlertCircle className="w-4 h-4" />
+                  মেয়াদ উত্তীর্ণ গ্রাহক — {allExpiredCustomers.length} জন
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  যে সকল গ্রাহকের রিচার্জের মেয়াদ শেষ হয়েছে
+                </p>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="নাম, সিআইডি বা মোবাইল দিয়ে খুঁজুন..."
+                    value={expiredSearch}
+                    onChange={(e) => setExpiredSearch(e.target.value)}
+                    data-ocid="idcard.expired.search_input"
+                  />
+                </div>
+                {/* Bulk send button */}
+                {filteredExpiredCustomers.length > 0 && (
+                  <Button
+                    onClick={startBulkSend}
+                    className="gap-2 font-semibold text-white w-full sm:w-auto"
+                    style={{ background: "#25D366" }}
+                    data-ocid="idcard.expired.bulk_button"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    সবাইকে WhatsApp মেসেজ পাঠান ({filteredExpiredCustomers.length}{" "}
+                    জন)
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Bulk send modal */}
+            {showBulkModal && bulkSendIndex !== null && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                style={{ background: "rgba(0,0,0,0.5)" }}
+                data-ocid="idcard.expired.modal"
+              >
+                <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-sm w-full space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3
+                      className="font-bold text-base"
+                      style={{ color: "#0a2463" }}
+                    >
+                      বাল্ক মেসেজ পাঠানো
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBulkModal(false);
+                        setBulkSendIndex(null);
+                      }}
+                      className="p-1 rounded-lg hover:bg-muted"
+                      data-ocid="idcard.expired.close_button"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    WhatsApp স্বয়ংক্রিয়ভাবে খুলছে। মেসেজ পাঠানোর পর "পরবর্তী" ক্লিক করুন।
+                  </p>
+                  <div className="p-3 rounded-lg bg-muted/40 text-sm">
+                    <p className="font-semibold" style={{ color: "#0a2463" }}>
+                      {bulkSendIndex + 1} / {filteredExpiredCustomers.length}
+                    </p>
+                    <p className="mt-1">
+                      {filteredExpiredCustomers[bulkSendIndex]?.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {filteredExpiredCustomers[bulkSendIndex]?.phone}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        openExpiredWhatsApp(
+                          filteredExpiredCustomers[bulkSendIndex],
+                        );
+                      }}
+                      data-ocid="idcard.expired.resend_button"
+                    >
+                      আবার খুলুন
+                    </Button>
+                    <Button
+                      className="flex-1 font-semibold"
+                      style={{ background: "#0a2463", color: "#d4af37" }}
+                      onClick={nextBulkSend}
+                      data-ocid="idcard.expired.confirm_button"
+                    >
+                      {bulkSendIndex + 1 < filteredExpiredCustomers.length
+                        ? "পরবর্তী →"
+                        : "সম্পন্ন ✓"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Expired customers list */}
+            {filteredExpiredCustomers.length === 0 ? (
+              <div
+                className="flex flex-col items-center justify-center py-16 text-center"
+                data-ocid="idcard.expired.empty_state"
+              >
+                <Users className="w-10 h-10 text-muted-foreground mb-3 opacity-40" />
+                <p className="text-sm text-muted-foreground">
+                  {expiredSearch
+                    ? "কোনো মিল পাওয়া যায়নি"
+                    : "কোনো মেয়াদ উত্তীর্ণ গ্রাহক নেই"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredExpiredCustomers.map((c, idx) => {
+                  const expiryDate = getExpiryDate(c.id, c.connectionDate);
+                  const isEditing = editingExpiryId === c.id.toString();
+                  const p = getPackage(c);
+                  return (
+                    <Card
+                      key={c.id.toString()}
+                      className="border-border shadow-sm"
+                      style={{ borderLeft: "3px solid #dc2626" }}
+                      data-ocid={`idcard.expired.item.${idx + 1}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          {/* Left: customer info */}
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="text-xs font-bold px-1.5 py-0.5 rounded"
+                                style={{
+                                  background: "rgba(220,38,38,0.1)",
+                                  color: "#dc2626",
+                                }}
+                              >
+                                #{idx + 1}
+                              </span>
+                              <span
+                                className="font-semibold text-sm"
+                                style={{ color: "#0a2463" }}
+                              >
+                                {c.username}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                              <span>
+                                সিআইডি:{" "}
+                                <span className="font-mono font-medium">
+                                  {c.cidNumber || "—"}
+                                </span>
+                              </span>
+                              <span>
+                                মোবাইল:{" "}
+                                <span className="font-mono font-medium">
+                                  {c.phone}
+                                </span>
+                              </span>
+                              <span>প্যাকেজ: {p?.speed || "—"} Mbps</span>
+                              <span>বিল: ৳{c.monthlyFee ?? 0}</span>
+                            </div>
+                            {/* Expiry date row */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <CalendarDays className="w-3.5 h-3.5 text-red-500" />
+                              <span className="text-xs text-red-600 font-medium">
+                                মেয়াদ শেষ: {expiryDate}
+                              </span>
+                              {isEditing ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="date"
+                                    className="text-xs border border-border rounded px-1 py-0.5"
+                                    value={editingExpiryDate}
+                                    onChange={(e) =>
+                                      setEditingExpiryDate(e.target.value)
+                                    }
+                                    data-ocid="idcard.expired.input"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="text-xs px-2 py-0.5 rounded font-semibold text-white"
+                                    style={{ background: "#0a2463" }}
+                                    onClick={() => {
+                                      if (editingExpiryDate) {
+                                        setExpiryDate(c.id, editingExpiryDate);
+                                      }
+                                      setEditingExpiryId(null);
+                                    }}
+                                    data-ocid="idcard.expired.save_button"
+                                  >
+                                    সেভ
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="text-xs px-2 py-0.5 rounded"
+                                    style={{ background: "rgba(0,0,0,0.07)" }}
+                                    onClick={() => setEditingExpiryId(null)}
+                                    data-ocid="idcard.expired.cancel_button"
+                                  >
+                                    বাদ
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded hover:bg-muted transition-colors"
+                                  onClick={() => {
+                                    setEditingExpiryId(c.id.toString());
+                                    setEditingExpiryDate(expiryDate);
+                                  }}
+                                  data-ocid="idcard.expired.edit_button"
+                                >
+                                  <Pencil className="w-3 h-3" /> আপডেট
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right: action buttons */}
+                          <div className="flex gap-2 flex-wrap sm:flex-col">
+                            <Button
+                              size="sm"
+                              className="gap-1.5 text-white font-semibold text-xs"
+                              style={{ background: "#25D366" }}
+                              onClick={() => openExpiredWhatsApp(c)}
+                              data-ocid="idcard.expired.whatsapp.button"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              WhatsApp
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="gap-1.5 text-white font-semibold text-xs"
+                              style={{ background: "#0284c7" }}
+                              onClick={() => openExpiredSMS(c)}
+                              data-ocid="idcard.expired.sms.button"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              SMS
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

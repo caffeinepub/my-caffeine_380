@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Building,
@@ -16,9 +17,11 @@ import {
   EyeOff,
   ImagePlus,
   Loader2,
+  Moon,
   Pencil,
   Plus,
   Shield,
+  Sun,
   Trash2,
   Wifi,
   X,
@@ -33,6 +36,7 @@ import {
   compressLogoDataUrl,
   useCompanySettings,
 } from "../hooks/useCompanySettings";
+import { useDarkMode } from "../hooks/useDarkMode";
 import { usePackages } from "../hooks/useQueries";
 
 interface PackageFormData {
@@ -64,6 +68,7 @@ export default function Settings({
     packages && packages.length > 0 ? packages : samplePackages;
 
   const { settings, save } = useCompanySettings();
+  const { isDark, setDark } = useDarkMode();
   const [companyForm, setCompanyForm] = useState({
     name: settings.name,
     address: settings.address,
@@ -200,6 +205,47 @@ export default function Settings({
 
   return (
     <div className="space-y-6" data-ocid="settings.page">
+      {/* Appearance */}
+      <Card
+        className="shadow-card border-border"
+        data-ocid="settings.appearance.card"
+      >
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              {isDark ? (
+                <Moon className="w-4 h-4 text-primary" />
+              ) : (
+                <Sun className="w-4 h-4 text-primary" />
+              )}
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold">
+                অ্যাপিয়ারেন্স
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                ডিসপ্লে থিম পরিবর্তন করুন
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <Label className="text-sm font-medium">ডার্ক মোড</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                রাত্রিকালীন বা কম আলোর পরিবেশে ব্যবহারের জন্য
+              </p>
+            </div>
+            <Switch
+              checked={isDark}
+              onCheckedChange={setDark}
+              data-ocid="settings.darkmode.switch"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Company Info & Logo */}
       <Card
         className="shadow-card border-border"

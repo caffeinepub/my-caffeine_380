@@ -1,8 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect } from "react";
+import { useState } from "react";
 import Layout from "./components/Layout";
+import OfflineSyncBanner from "./components/OfflineSyncBanner";
+import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
+import { useSyncManager } from "./hooks/useSyncManager";
 
 const CallCenter = lazy(() => import("./pages/CallCenter"));
 const Customers = lazy(() => import("./pages/Customers"));
@@ -61,6 +65,7 @@ function PageLoader() {
 
 function AppContent() {
   const { identity, isInitializing, clear } = useInternetIdentity();
+  const { actor } = useActor();
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [adminSession, setAdminSession] = useState<AdminSession | null>(
     getStoredAdminSession,
@@ -70,6 +75,9 @@ function AppContent() {
   const isSuperAdmin = !!identity;
   const isLoggedIn = isSuperAdmin || !!adminSession;
   const isAdmin = isLoggedIn;
+
+  // Sync manager — watches online/offline, processes queue when back online
+  const syncStatus = useSyncManager(actor);
 
   // Register service worker for PWA
   useEffect(() => {
@@ -155,6 +163,9 @@ function AppContent() {
       onLogout={isSuperAdmin ? () => clear() : handleLogout}
       onLoginRequest={() => setShowLogin(true)}
     >
+      {/* Offline / sync status indicator */}
+      <OfflineSyncBanner status={syncStatus} />
+
       <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
       <footer className="mt-8 pb-2 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}. Built with ❤️ using{" "}

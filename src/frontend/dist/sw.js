@@ -1,44 +1,44 @@
 // Service Worker - Offline-first for Naosheen Broadband Internet
-const CACHE_NAME = 'naosheen-bb-v3';
-const STATIC_CACHE = 'naosheen-bb-static-v3';
+const CACHE_NAME = 'naosheen-bb-v5';
 
-// App shell resources to cache on install
-const SHELL_URLS = ['/', '/index.html', '/manifest.json'];
-
-// Install: cache app shell
+// Install: skip waiting immediately
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(SHELL_URLS);
-    }).then(() => self.skipWaiting())
-  );
+  event.waitUntil(self.skipWaiting());
 });
 
-// Activate: clear old caches
+// Activate: delete old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE)
+          .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch: Cache-first for static assets, network-first for API calls
+// Fetch handler
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip canister API calls (ICP backend) - always try network first
-  if (url.hostname.includes('.ic0.app') || url.hostname.includes('.icp0.io') || url.pathname.includes('/api/')) {
+  // Skip chrome-extension and non-http requests
+  if (!url.protocol.startsWith('http')) return;
+
+  // ICP canister API calls — network first, offline fallback
+  if (
+    url.hostname.includes('.ic0.app') ||
+    url.hostname.includes('.icp0.io') ||
+    url.pathname.startsWith('/api/')
+  ) {
     event.respondWith(
       fetch(event.request).catch(() => {
         return new Response(JSON.stringify({ error: 'offline' }), {
+          status: 503,
           headers: { 'Content-Type': 'application/json' }
         });
       })
@@ -46,59 +46,62 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For same-origin JS/CSS/images - cache first, then network
+  // JS/CSS/fonts/images — cache first, update in background (stale-while-revalidate)
   if (
     url.origin === self.location.origin &&
-    (url.pathname.endsWith('.js') ||
-      url.pathname.endsWith('.css') ||
-      url.pathname.endsWith('.png') ||
-      url.pathname.endsWith('.svg') ||
-      url.pathname.endsWith('.ico') ||
-      url.pathname.endsWith('.woff2') ||
-      url.pathname.endsWith('.woff'))
+    (
+      url.pathname.match(/\.(js|css|woff2?|ttf|eot|otf|png|svg|ico|jpg|jpeg|webp|gif)$/)
+    )
   ) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(event.request).then((cached) => {
+          const networkFetch = fetch(event.request).then((response) => {
+            if (response && response.status === 200) {
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          }).catch(() => cached);
+          return cached || networkFetch;
         });
       })
     );
     return;
   }
 
-  // For HTML navigation - network first, fallback to cache
-  if (event.request.headers.get('accept')?.includes('text/html')) {
+  // HTML navigation — network first, fallback to cached index.html
+  if (
+    event.request.mode === 'navigate' ||
+    event.request.headers.get('accept')?.includes('text/html')
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
           if (response && response.status === 200) {
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() =>
+          caches.match('/index.html') ||
+          caches.match('/')
+        )
     );
     return;
   }
 
-  // Default: try cache, then network
+  // Default: network first, cache fallback
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => caches.match('/index.html'));
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 
