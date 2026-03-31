@@ -8,7 +8,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="নওশীন ব্রডব্যান্ড" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" id="apple-touch-icon" href="/icon-192.png" />
+    <script>
+      // Update apple-touch-icon from saved logo (for iOS Add to Home Screen)
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem('nosheen_company_settings') || 'null');
+          if (s && s.logo) {
+            var el = document.getElementById('apple-touch-icon');
+            if (el) el.setAttribute('href', s.logo);
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <script>
+      // When logo is saved in Settings, update manifest href to force Chrome re-read
+      window.addEventListener('nosheen_manifest_update', function(e) {
+        var link = document.querySelector('link[rel="manifest"]');
+        if (link) {
+          link.setAttribute('href', '/manifest.json?v=' + e.detail);
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
