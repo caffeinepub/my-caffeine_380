@@ -85,6 +85,7 @@ async function savePwaIconToIDB(dataUrl: string): Promise<void> {
 
         const png192 = renderIcon(192);
         const png512 = renderIcon(512);
+        const png180 = renderIcon(180); // iOS apple-touch-icon
 
         const req = indexedDB.open(IDB_NAME, 1);
         req.onupgradeneeded = (e: Event) => {
@@ -96,6 +97,7 @@ async function savePwaIconToIDB(dataUrl: string): Promise<void> {
           const store = tx.objectStore(IDB_STORE);
           store.put(png192, "pwa_icon_192");
           store.put(png512, "pwa_icon_512");
+          store.put(png180, "pwa_icon_ios");
           // Keep backward-compatible key too
           store.put(png192, "pwa_icon");
           tx.oncomplete = () => resolve();

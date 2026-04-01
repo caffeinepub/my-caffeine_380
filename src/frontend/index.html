@@ -8,9 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="নওশীন ব্রডব্যান্ড" />
-    <link rel="apple-touch-icon" id="apple-touch-icon" href="/icon-192.png" />
+    <!-- Primary apple-touch-icon: SW serves dynamic logo at 180x180 if uploaded -->
+    <link rel="apple-touch-icon" sizes="180x180" id="apple-touch-icon" href="/dynamic-apple-touch-icon.png" />
     <script>
-      // Update apple-touch-icon from saved logo (for iOS Add to Home Screen)
+      // Fallback: if no SW dynamic icon yet, use data URL from localStorage
       (function () {
         try {
           var s = JSON.parse(localStorage.getItem('nosheen_company_settings') || 'null');
@@ -27,6 +28,11 @@
         var link = document.querySelector('link[rel="manifest"]');
         if (link) {
           link.setAttribute('href', '/manifest.json?v=' + e.detail);
+        }
+        // Also update apple-touch-icon href to force iOS re-read
+        var ati = document.getElementById('apple-touch-icon');
+        if (ati) {
+          ati.setAttribute('href', '/dynamic-apple-touch-icon.png?v=' + e.detail);
         }
       });
     </script>

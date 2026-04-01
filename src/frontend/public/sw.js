@@ -117,6 +117,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Apple Touch Icon (iOS Add to Home Screen)
+  if (url.pathname === '/dynamic-apple-touch-icon.png') {
+    event.respondWith(buildIconResponse('pwa_icon_ios'));
+    return;
+  }
+
   // ICP canister API calls — network first
   if (
     url.hostname.includes('.ic0.app') ||
