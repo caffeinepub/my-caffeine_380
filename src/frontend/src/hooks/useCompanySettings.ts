@@ -6,6 +6,10 @@ export interface CompanySettings {
   email: string;
   whatsapp: string;
   logo: string | null;
+  directorName: string;
+  technicianName: string;
+  companyBrand: string;
+  resellerName: string;
 }
 
 const KEY = "nosheen_company_settings";
@@ -19,6 +23,10 @@ const defaults: CompanySettings = {
   email: "",
   whatsapp: "",
   logo: null,
+  directorName: "মুহাম্মদ মনিরুজ্জামান",
+  technicianName: "মুহাম্মদ উজ্জল মিয়া",
+  companyBrand: "Delta Software and Communication Limited",
+  resellerName: "নওশীন ব্রডব্যান্ড ইন্টারনেট",
 };
 
 function loadSettings(): CompanySettings {
@@ -98,7 +106,6 @@ async function savePwaIconToIDB(dataUrl: string): Promise<void> {
           store.put(png192, "pwa_icon_192");
           store.put(png512, "pwa_icon_512");
           store.put(png180, "pwa_icon_ios");
-          // Keep backward-compatible key too
           store.put(png192, "pwa_icon");
           tx.oncomplete = () => resolve();
           tx.onerror = () => resolve();
@@ -145,14 +152,11 @@ export function useCompanySettings() {
       new CustomEvent<CompanySettings>(CUSTOM_EVENT, { detail: next }),
     );
 
-    // Save PWA icon to IndexedDB so SW can serve it as /dynamic-icon-192.png and /dynamic-icon-512.png
     if (next.logo) {
       await savePwaIconToIDB(next.logo);
-      // Notify manifest link to refresh so Chrome picks up the new icon
       window.dispatchEvent(
         new CustomEvent("nosheen_manifest_update", { detail: Date.now() }),
       );
-      // Update apple-touch-icon in current document for iOS
       const appleLink = document.querySelector<HTMLLinkElement>(
         'link[rel="apple-touch-icon"]',
       );

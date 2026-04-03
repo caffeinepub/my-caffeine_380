@@ -1,22 +1,25 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Phone, Users } from "lucide-react";
-
-const TEAM = [
-  {
-    title: "প্রতিষ্ঠাতা পরিচালক",
-    name: "মুহাম্মদ মনিরুজ্জামান",
-    phone: "+8801607930157",
-    email: "nousheen.broadband.internet@gmail.com",
-  },
-  {
-    title: "টেকনিক্যাল ম্যানেজার",
-    name: "মুহাম্মদ উজ্জল মিয়া",
-    phone: "+8801648388329",
-    email: "nousheen.broadband.internet@gmail.com",
-  },
-];
+import { useCompanySettings } from "../hooks/useCompanySettings";
 
 export default function AboutUs() {
+  const { settings } = useCompanySettings();
+
+  const team = [
+    {
+      title: "প্রতিষ্ঠাতা পরিচালক",
+      name: settings.directorName,
+      phone: "+8801607930157",
+      email: "nousheen.broadband.internet@gmail.com",
+    },
+    {
+      title: "টেকনিক্যাল ম্যানেজার",
+      name: settings.technicianName,
+      phone: "+8801648388329",
+      email: "nousheen.broadband.internet@gmail.com",
+    },
+  ];
+
   return (
     <div className="space-y-6" data-ocid="aboutus.page">
       {/* Header */}
@@ -41,10 +44,10 @@ export default function AboutUs() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">
-                নওশীন ব্রডব্যান্ড ইন্টারনেট
+                {settings.resellerName || settings.name}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Delta Software &amp; Communication Limited এর একটি রিসেলার
+                {settings.companyBrand} এর একটি রিসেলার
               </p>
             </div>
           </div>
@@ -53,7 +56,7 @@ export default function AboutUs() {
 
       {/* Team cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {TEAM.map((member, i) => (
+        {team.map((member, i) => (
           <Card
             key={member.phone}
             className="shadow-card border-border"
@@ -76,7 +79,7 @@ export default function AboutUs() {
                 <a
                   href={`tel:${member.phone}`}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  data-ocid={`aboutus.team.item.${i + 1}`}
+                  data-ocid={`aboutus.team.phone.${i + 1}`}
                 >
                   <Phone
                     className="w-4 h-4 shrink-0"

@@ -24,6 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { useActor } from "../hooks/useActor";
+import { useCompanySettings } from "../hooks/useCompanySettings";
 import { useExpenses } from "../hooks/useExpenses";
 import { useLocalCustomers } from "../hooks/useLocalCustomers";
 
@@ -167,6 +168,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const { customers } = useLocalCustomers();
   const { expenses } = useExpenses();
+  const { settings } = useCompanySettings();
 
   const { actor } = useActor();
   const [debtSummary, setDebtSummary] = useState({
@@ -483,16 +485,16 @@ export default function Dashboard({
       {/* Team Info Banner */}
       <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center">
         <p className="text-xs font-semibold text-muted-foreground shrink-0">
-          নেতৃত্ব:
+          কর্তৃপক্ষ:
         </p>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-xs text-foreground">
           <span>
-            <span className="font-semibold">প্রতিষ্ঠাতা পরিচালক:</span> মুহাম্মদ
-            মনিরুজ্জামান
+            <span className="font-semibold">পরিচালক:</span>{" "}
+            {settings.directorName}
           </span>
           <span>
-            <span className="font-semibold">টেকনিক্যাল ম্যানেজার:</span> মুহাম্মদ উজ্জল
-            মিয়া
+            <span className="font-semibold">টেকনিশিয়ান:</span>{" "}
+            {settings.technicianName}
           </span>
         </div>
       </div>

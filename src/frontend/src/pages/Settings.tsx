@@ -23,6 +23,7 @@ import {
   Shield,
   Sun,
   Trash2,
+  UserCog,
   Wifi,
   X,
 } from "lucide-react";
@@ -79,6 +80,20 @@ export default function Settings({
   const [savingCompany, setSavingCompany] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [orgInfoForm, setOrgInfoForm] = useState({
+    companyBrand: settings.companyBrand,
+    resellerName: settings.resellerName,
+    directorName: settings.directorName,
+    technicianName: settings.technicianName,
+  });
+  const [orgInfoErrors, setOrgInfoErrors] = useState({
+    companyBrand: "",
+    resellerName: "",
+    directorName: "",
+    technicianName: "",
+  });
+  const [savingOrgInfo, setSavingOrgInfo] = useState(false);
+
   useEffect(() => {
     setLogoPreview(settings.logo);
     setCompanyForm({
@@ -86,6 +101,12 @@ export default function Settings({
       address: settings.address,
       email: settings.email,
       whatsapp: settings.whatsapp,
+    });
+    setOrgInfoForm({
+      companyBrand: settings.companyBrand,
+      resellerName: settings.resellerName,
+      directorName: settings.directorName,
+      technicianName: settings.technicianName,
     });
   }, [settings]);
 
@@ -104,9 +125,49 @@ export default function Settings({
   async function handleSaveCompany() {
     setSavingCompany(true);
     await new Promise((r) => setTimeout(r, 300));
-    save({ ...companyForm, logo: logoPreview });
+    save({ ...settings, ...companyForm, logo: logoPreview });
     setSavingCompany(false);
     toast.success("প্রতিষ্ঠানের তথ্য সংরক্ষণ করা হয়েছে");
+  }
+
+  function validateOrgInfo(): boolean {
+    const errors = {
+      companyBrand: "",
+      resellerName: "",
+      directorName: "",
+      technicianName: "",
+    };
+    let valid = true;
+    if (!orgInfoForm.companyBrand.trim()) {
+      errors.companyBrand = "মূল কোম্পানির নাম খালি রাখা যাবে না";
+      valid = false;
+    }
+    if (!orgInfoForm.resellerName.trim()) {
+      errors.resellerName = "রেসেলার কোম্পানির নাম খালি রাখা যাবে না";
+      valid = false;
+    }
+    if (!orgInfoForm.directorName.trim()) {
+      errors.directorName = "পরিচালকের নাম খালি রাখা যাবে না";
+      valid = false;
+    }
+    if (!orgInfoForm.technicianName.trim()) {
+      errors.technicianName = "টেকনিশিয়ানের নাম খালি রাখা যাবে না";
+      valid = false;
+    }
+    setOrgInfoErrors(errors);
+    return valid;
+  }
+
+  async function handleSaveOrgInfo() {
+    if (!validateOrgInfo()) {
+      toast.error("সকল ফিল্ড পূরণ করুন");
+      return;
+    }
+    setSavingOrgInfo(true);
+    await new Promise((r) => setTimeout(r, 300));
+    save({ ...settings, ...orgInfoForm });
+    setSavingOrgInfo(false);
+    toast.success("তথ্য সফলভাবে আপডেট হয়েছে।");
   }
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -375,6 +436,157 @@ export default function Settings({
                   সংরক্ষণ করুন
                 </Button>
               </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Org Info Change */}
+      <Card
+        className="shadow-card border-border"
+        data-ocid="settings.orginfo.card"
+      >
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <UserCog className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold">
+                প্রতিষ্ঠানের তথ্য পরিবর্তন
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                কোম্পানি, রেসেলার, পরিচালক ও টেকনিশিয়ানের নাম পরিবর্তন করুন
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4">
+            {/* Field 1: Company Brand */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                মূল কোম্পানির নাম <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                data-ocid="settings.company_brand.input"
+                value={orgInfoForm.companyBrand}
+                onChange={(e) => {
+                  setOrgInfoForm((p) => ({
+                    ...p,
+                    companyBrand: e.target.value,
+                  }));
+                  if (e.target.value.trim())
+                    setOrgInfoErrors((p) => ({ ...p, companyBrand: "" }));
+                }}
+                placeholder="Delta Software and Communication Limited"
+                className={
+                  orgInfoErrors.companyBrand ? "border-destructive" : ""
+                }
+              />
+              {orgInfoErrors.companyBrand && (
+                <p className="text-xs text-destructive">
+                  {orgInfoErrors.companyBrand}
+                </p>
+              )}
+            </div>
+
+            {/* Field 2: Reseller Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                রেসেলার কোম্পানির নাম <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                data-ocid="settings.reseller_name.input"
+                value={orgInfoForm.resellerName}
+                onChange={(e) => {
+                  setOrgInfoForm((p) => ({
+                    ...p,
+                    resellerName: e.target.value,
+                  }));
+                  if (e.target.value.trim())
+                    setOrgInfoErrors((p) => ({ ...p, resellerName: "" }));
+                }}
+                placeholder="নওশীন ব্রডব্যান্ড ইন্টারনেট"
+                className={
+                  orgInfoErrors.resellerName ? "border-destructive" : ""
+                }
+              />
+              {orgInfoErrors.resellerName && (
+                <p className="text-xs text-destructive">
+                  {orgInfoErrors.resellerName}
+                </p>
+              )}
+            </div>
+
+            {/* Field 3: Director Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                পরিচালকের নাম <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                data-ocid="settings.director_name.input"
+                value={orgInfoForm.directorName}
+                onChange={(e) => {
+                  setOrgInfoForm((p) => ({
+                    ...p,
+                    directorName: e.target.value,
+                  }));
+                  if (e.target.value.trim())
+                    setOrgInfoErrors((p) => ({ ...p, directorName: "" }));
+                }}
+                placeholder="মুহাম্মদ মনিরুজ্জামান"
+                className={
+                  orgInfoErrors.directorName ? "border-destructive" : ""
+                }
+              />
+              {orgInfoErrors.directorName && (
+                <p className="text-xs text-destructive">
+                  {orgInfoErrors.directorName}
+                </p>
+              )}
+            </div>
+
+            {/* Field 4: Technician Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                টেকনিশিয়ানের নাম <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                data-ocid="settings.technician_name.input"
+                value={orgInfoForm.technicianName}
+                onChange={(e) => {
+                  setOrgInfoForm((p) => ({
+                    ...p,
+                    technicianName: e.target.value,
+                  }));
+                  if (e.target.value.trim())
+                    setOrgInfoErrors((p) => ({ ...p, technicianName: "" }));
+                }}
+                placeholder="মুহাম্মদ উজ্জল মিয়া"
+                className={
+                  orgInfoErrors.technicianName ? "border-destructive" : ""
+                }
+              />
+              {orgInfoErrors.technicianName && (
+                <p className="text-xs text-destructive">
+                  {orgInfoErrors.technicianName}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Button
+                className="bg-primary text-white"
+                onClick={handleSaveOrgInfo}
+                disabled={savingOrgInfo}
+                data-ocid="settings.save_orginfo.button"
+              >
+                {savingOrgInfo && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                সংরক্ষণ করুন
+              </Button>
             </div>
           </div>
         </CardContent>
