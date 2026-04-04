@@ -106,7 +106,7 @@ function AppContent() {
       >
         <div className="flex flex-col items-center gap-4">
           <div className="h-14 w-14 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-          <p className="text-white text-sm font-medium">নওশীন ব্রডব্যান্ড</p>
+          <p className="text-white text-sm font-medium">বালিগাঁও ব্রডব্যান্ড</p>
           <Skeleton className="h-3 w-28 opacity-40" />
         </div>
       </div>

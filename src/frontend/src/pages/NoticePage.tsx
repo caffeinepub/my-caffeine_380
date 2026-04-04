@@ -111,7 +111,7 @@ export default function NoticePage(_props: NoticePageProps) {
   const [selectedVillages, setSelectedVillages] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const orgName = settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট";
+  const orgName = settings.name || "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট";
 
   const noticeText = generated
     ? buildNoticeText(issueType, area, startTime, restoreTime, notes, orgName)

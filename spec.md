@@ -1,28 +1,40 @@
-# নওশীন ব্রডব্যান্ড ইন্টারনেট
+# বালিগাঁও ব্রডব্যান্ড ইন্টারনেট — ISP Management System
 
 ## Current State
-The app has PWA support with a service worker that dynamically builds the manifest and serves a custom icon (`/dynamic-icon.png`) from IndexedDB when the user uploads a logo in Settings. However, the feature is not working reliably because:
-1. The icon is only saved at 192×192px — Chrome requires a 512×512 icon for PWA install.
-2. After saving the logo, Chrome is not notified to re-fetch the manifest (old cached manifest is used).
-3. The SW only intercepts `/manifest.json` exactly — query-param variants (for cache-busting) are not handled.
+App has hardcoded default values for org names in `useCompanySettings.ts` and several pages. The settings page allows changing these values, but defaults and fallback strings still reference old names throughout the codebase.
+
+Current hardcoded values:
+- Reseller name: নওশীন ব্রডব্যান্ড ইন্টারনেট
+- Main company brand: Delta Software and Communication Limited
+- Director: মুহাম্মদ মনিরুজ্জামান
+- Technician: মুহাম্মদ উজ্জল মিয়া (stays same)
 
 ## Requested Changes (Diff)
 
 ### Add
-- Save logo at **512×512** resolution to IDB as `pwa_icon_512` in addition to existing `pwa_icon_192`.
-- SW routes for `/dynamic-icon-192.png` and `/dynamic-icon-512.png` serving from IDB.
-- After logo save: dynamically update `<link rel="manifest">` href with a `?v=TIMESTAMP` to force Chrome to re-read the manifest.
-- SW manifest interception now matches any URL starting with `/manifest.json` (handles query params).
+- Nothing new to add
 
 ### Modify
-- `useCompanySettings.ts`: `savePwaIconToIDB` saves both 192×192 and 512×512 PNGs to IDB; after save, dispatches a DOM event to update the manifest link.
-- `sw.js`: Intercept both `/dynamic-icon-192.png` and `/dynamic-icon-512.png`; manifest handler matches `startsWith('/manifest.json')`; dynamic manifest references both sized icon URLs.
-- `index.html`: Listen for manifest update event and refresh `<link rel="manifest">` href.
+- `useCompanySettings.ts`: Update `defaults` object:
+  - `name`: "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট"
+  - `resellerName`: "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট"
+  - `companyBrand`: "স্বাধীন ওয়াইফাই"
+  - `directorName`: "আবুল কাশেম"
+  - `technicianName`: "মুহাম্মদ উজ্জল মিয়া" (unchanged)
+- `Settings.tsx`: Update all placeholder text and default value strings
+- `IdCard.tsx`: Update all hardcoded fallback strings ("নওশীন ব্রডব্যান্ড ইন্টারনেট", "Delta Software and Communication Limited", "মুহাম্মদ মনিরুজ্জামান", "মুহাম্মদ উজ্জল মিয়া") to new values
+- `SocialMediaPost.tsx`: Update all hardcoded fallback strings similarly
+- `NoticePage.tsx`: Update fallback org name string
+- `Layout.tsx`: Update hardcoded "নওশীন ব্রডব্যান্ড" and "Delta Software & Comm. Ltd" display text to use dynamic settings or new values
+- `Dashboard.tsx`: Update "Delta Software and Communication Limited" hardcoded strings
+- `DebtManagement.tsx`: Update "Delta Software and Communication Limited" hardcoded strings
+- `AboutUs.tsx`: Update email from nousheen.broadband.internet@gmail.com to match new org (keep same email for now, email field is not in scope), no other hardcoded names present (already dynamic)
 
 ### Remove
-- Old single `/dynamic-icon.png` route in SW (replaced by two separate routes).
+- Nothing to remove
 
 ## Implementation Plan
-1. Update `useCompanySettings.ts` — save dual icon sizes, dispatch `nosheen_manifest_update` event after save.
-2. Update `public/sw.js` — match manifest by prefix, add dual icon routes, update manifest JSON.
-3. Update `index.html` — listen for `nosheen_manifest_update` and refresh manifest href with timestamp.
+1. Update `useCompanySettings.ts` defaults object with new org names
+2. Update all fallback/hardcoded strings in IdCard.tsx, SocialMediaPost.tsx, NoticePage.tsx, Layout.tsx, Dashboard.tsx, DebtManagement.tsx, Settings.tsx to use new names
+3. Ensure all places that use `settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট"` fallback are updated to new reseller name
+4. Also clear any saved localStorage so old settings don't persist — add a migration check in useCompanySettings to detect old defaults and replace with new ones

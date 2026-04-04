@@ -231,13 +231,13 @@ export default function Layout({
             </div>
             <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-tight truncate">
-                নওশীন ব্রডব্যান্ড
+                {settings.resellerName || "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট"}
               </p>
               <p
                 className="text-xs leading-tight mt-0.5"
                 style={{ color: "oklch(0.65 0.02 252)" }}
               >
-                Delta Software & Comm. Ltd
+                {settings.companyBrand || "স্বাধীন ওয়াইফাই"}
               </p>
             </div>
           </div>

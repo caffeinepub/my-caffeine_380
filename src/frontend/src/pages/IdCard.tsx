@@ -61,6 +61,8 @@ interface DrawData {
   orgName: string;
   orgAddress: string;
   logo: string | null;
+  directorName?: string;
+  companyBrand?: string;
 }
 
 function normalizeWhatsAppPhone(phone: string): string {
@@ -304,7 +306,7 @@ async function drawFrontCard(
   ctx.fillStyle = "#333333";
   ctx.font = `${scale * 7}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
   ctx.fillText(
-    " মুহাম্মদ মনিরুজ্জামান  |  WhatsApp: +8801607930157",
+    ` ${data.directorName || "আবুল কাশেম"}  |  WhatsApp: +8801607930157`,
     offsetX + padding + scale * 40,
     mgmtY + scale * 3,
   );
@@ -329,7 +331,7 @@ async function drawFrontCard(
   ctx.save();
   ctx.fillStyle = "#ffffff";
   ctx.font = `${scale * 8}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
-  const footerText = "Delta Software & Communication Limited";
+  const footerText = data?.companyBrand || "স্বাধীন ওয়াইফাই";
   const ftMeasure = ctx.measureText(footerText);
   ctx.fillText(
     footerText,
@@ -346,6 +348,7 @@ async function drawBackCard(
   scale: number,
   offsetX = 0,
   offsetY = 0,
+  data?: Partial<DrawData>,
 ) {
   const W = Math.round(CARD_WIDTH * scale);
   const H = Math.round(CARD_HEIGHT * scale);
@@ -451,7 +454,7 @@ async function drawBackCard(
     { text: " অথবা ", color: "#333333", bold: false },
     { text: "নগদ", color: "#F7941D", bold: true },
     {
-      text: " একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করে সিআইডি নম্বর এবং মোবাইল নাম্বার ব্যবহার করে আপনার নির্ধারিত প্যাকেজ অনুযায়ী রিচার্জ করুন।",
+      text: ` একাউন্ট থেকে Pay Bill অপশনে গিয়ে ${data?.companyBrand || "স্বাধীন ওয়াইফাই"} খুঁজে বের করে সিআইডি নম্বর এবং মোবাইল নাম্বার ব্যবহার করে আপনার নির্ধারিত প্যাকেজ অনুযায়ী রিচার্জ করুন।`,
       color: "#1a2a4a",
       bold: false,
     },
@@ -505,7 +508,7 @@ async function drawBackCard(
   ctx.save();
   ctx.fillStyle = "#ffffff";
   ctx.font = `${scale * 8}px 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif`;
-  const footerText = "Delta Software & Communication Limited";
+  const footerText = data?.companyBrand || "স্বাধীন ওয়াইফাই";
   const ftMeasure = ctx.measureText(footerText);
   ctx.fillText(
     footerText,
@@ -545,7 +548,7 @@ async function buildCombinedCanvas(
   const margin = 60;
   const gap = 40;
   await drawFrontCard(ctx, SCALE_A4, drawData, margin, margin);
-  await drawBackCard(ctx, SCALE_A4, margin + cardW + gap, margin);
+  await drawBackCard(ctx, SCALE_A4, margin + cardW + gap, margin, drawData);
   return canvas;
 }
 
@@ -619,16 +622,18 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
       phone: customer.phone,
       packageSpeed: pkg?.speed || "",
       monthlyFee: customer.monthlyFee ?? 0,
-      orgName: settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট",
+      orgName: settings.name || "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট",
       orgAddress: settings.address || "",
       logo: settings.logo,
+      directorName: settings.directorName || "আবুল কাশেম",
+      companyBrand: settings.companyBrand || "স্বাধীন ওয়াইফাই",
     };
   }
 
   function buildShareMessage(customer: ExtendedCustomer): string {
     const pkg = getPackage(customer);
     return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।
-আপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${customer.cidNumber || ""} এবং মোবাইল নম্বর ${customer.phone} ব্যবহার করে আজই রিচার্জ করুন।
+আপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে ${settings.companyBrand || "স্বাধীন ওয়াইফাই"} খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${customer.cidNumber || ""} এবং মোবাইল নম্বর ${customer.phone} ব্যবহার করে আজই রিচার্জ করুন।
 আপনার প্যাকেজটি ${pkg?.speed || ""} এমবিপিএস এবং মাসিক বিল ${customer.monthlyFee ?? 0} টাকা।`;
   }
 
@@ -677,7 +682,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
       canvas.height = CANVAS_H;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      await drawBackCard(ctx, SCALE, 0, 0);
+      await drawBackCard(ctx, SCALE, 0, 0, buildDrawData(selectedCustomer));
       triggerDownload(canvas, `${selectedCustomer.username}_back.png`);
     } finally {
       setIsDownloading(false);
@@ -750,7 +755,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
   }
 
   const pkg = selectedCustomer ? getPackage(selectedCustomer) : null;
-  const orgName = settings.name || "নওশীন ব্রডব্যান্ড ইন্টারনেট";
+  const orgName = settings.name || "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট";
   const orgAddress = settings.address || "";
 
   // Expired customers logic
@@ -781,7 +786,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
 
   function buildExpiredMessage(c: ExtendedCustomer): string {
     const p = getPackage(c);
-    return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।\nআপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে Delta Software and Communication Limited খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${c.cidNumber || ""} এবং মোবাইল নম্বর ${c.phone} ব্যবহার করে আজই রিচার্জ করুন।\nআপনার প্যাকেজটি ${p?.speed || ""} এমবিপিএস এবং মাসিক বিল ${c.monthlyFee ?? 0} টাকা।`;
+    return `সম্মানিত গ্রাহক, আপনার ওয়াইফাই এর রিচার্জের মেয়াদ শেষ হয়ে গেছে।\nআপনার সংযোগটি সচল রাখতে বিকাশ অথবা নগদ একাউন্ট থেকে Pay Bill অপশনে গিয়ে ${settings.companyBrand || "স্বাধীন ওয়াইফাই"} খুঁজে বের করুন এবং আপনার সিআইডি নম্বর ${c.cidNumber || ""} এবং মোবাইল নম্বর ${c.phone} ব্যবহার করে আজই রিচার্জ করুন।\nআপনার প্যাকেজটি ${p?.speed || ""} এমবিপিএস এবং মাসিক বিল ${c.monthlyFee ?? 0} টাকা।`;
   }
 
   function openExpiredWhatsApp(c: ExtendedCustomer) {
@@ -840,6 +845,8 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
               orgName={orgName}
               orgAddress={orgAddress}
               logo={settings.logo}
+              directorName={settings.directorName || "আবুল কাশেম"}
+              companyBrand={settings.companyBrand || "স্বাধীন ওয়াইফাই"}
             />
             <PrintCard
               side="back"
@@ -848,6 +855,7 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
               orgName={orgName}
               orgAddress={orgAddress}
               logo={settings.logo}
+              companyBrand={settings.companyBrand || "স্বাধীন ওয়াইফাই"}
             />
           </div>
         )}
@@ -1154,8 +1162,12 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
                         orgName={orgName}
                         orgAddress={orgAddress}
                         logo={settings.logo}
+                        directorName={settings.directorName || "আবুল কাশেম"}
+                        companyBrand={settings.companyBrand || "স্বাধীন ওয়াইফাই"}
                       />
-                      <NIDCardBack />
+                      <NIDCardBack
+                        companyBrand={settings.companyBrand || "স্বাধীন ওয়াইফাই"}
+                      />
                     </div>
 
                     {/* Customer Info + Contact Buttons Card */}
@@ -1296,7 +1308,8 @@ export default function IdCard({ isAdmin = false }: IdCardProps) {
                     <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
                       <p>
                         <span className="font-semibold">প্রতিষ্ঠাতা পরিচালক:</span>{" "}
-                        মুহাম্মদ মনিরুজ্জামান | WhatsApp: +8801607930157
+                        {settings.directorName || "আবুল কাশেম"} | WhatsApp:
+                        +8801607930157
                       </p>
                       <p>
                         <span className="font-semibold">টেকনিক্যাল ম্যানেজার:</span>{" "}
@@ -1731,9 +1744,19 @@ interface CardProps {
   orgName: string;
   orgAddress: string;
   logo: string | null;
+  directorName?: string;
+  companyBrand?: string;
 }
 
-function NIDCardFront({ customer, pkg, orgName, orgAddress, logo }: CardProps) {
+function NIDCardFront({
+  customer,
+  pkg,
+  orgName,
+  orgAddress,
+  logo,
+  directorName = "আবুল কাশেম",
+  companyBrand = "স্বাধীন ওয়াইফাই",
+}: CardProps) {
   return (
     <div
       style={{
@@ -1889,7 +1912,7 @@ function NIDCardFront({ customer, pkg, orgName, orgAddress, logo }: CardProps) {
           }}
         >
           <span style={{ fontWeight: 600, color: "#0a2463" }}>পরিচালনায়:</span>{" "}
-          মুহাম্মদ মনিরুজ্জামান &nbsp;|&nbsp; WhatsApp: +8801607930157
+          {directorName} &nbsp;|&nbsp; WhatsApp: +8801607930157
         </p>
         <p
           style={{
@@ -1918,14 +1941,16 @@ function NIDCardFront({ customer, pkg, orgName, orgAddress, logo }: CardProps) {
         }}
       >
         <p style={{ color: "#ffffff", fontSize: "8px", margin: 0 }}>
-          Delta Software &amp; Communication Limited
+          {companyBrand}
         </p>
       </div>
     </div>
   );
 }
 
-function NIDCardBack() {
+function NIDCardBack({
+  companyBrand = "স্বাধীন ওয়াইফাই",
+}: { companyBrand?: string }) {
   return (
     <div
       style={{
@@ -1992,9 +2017,8 @@ function NIDCardBack() {
           <span style={{ color: "#E2136E", fontWeight: "bold" }}>বিকাশ</span> অথবা{" "}
           <span style={{ color: "#F7941D", fontWeight: "bold" }}>নগদ</span>{" "}
           একাউন্ট থেকে <strong>Pay Bill</strong> অপশনে গিয়ে{" "}
-          <strong>Delta Software and Communication Limited</strong> খুঁজে বের করে{" "}
-          সিআইডি নম্বর এবং মোবাইল নাম্বার ব্যবহার করে আপনার নির্ধারিত প্যাকেজ অনুযায়ী রিচার্জ
-          করুন।
+          <strong>{companyBrand}</strong> খুঁজে বের করে সিআইডি নম্বর এবং মোবাইল নাম্বার
+          ব্যবহার করে আপনার নির্ধারিত প্যাকেজ অনুযায়ী রিচার্জ করুন।
         </p>
       </div>
 
@@ -2010,7 +2034,7 @@ function NIDCardBack() {
         }}
       >
         <p style={{ color: "#ffffff", fontSize: "8px", margin: 0 }}>
-          Delta Software &amp; Communication Limited
+          {companyBrand}
         </p>
       </div>
     </div>
@@ -2062,6 +2086,8 @@ function PrintCard({
   orgName,
   orgAddress,
   logo,
+  directorName,
+  companyBrand,
 }: {
   side: "front" | "back";
   customer: ExtendedCustomer;
@@ -2069,6 +2095,8 @@ function PrintCard({
   orgName: string;
   orgAddress: string;
   logo: string | null;
+  directorName?: string;
+  companyBrand?: string;
 }) {
   if (side === "front") {
     return (
@@ -2078,8 +2106,10 @@ function PrintCard({
         orgName={orgName}
         orgAddress={orgAddress}
         logo={logo}
+        directorName={directorName}
+        companyBrand={companyBrand}
       />
     );
   }
-  return <NIDCardBack />;
+  return <NIDCardBack companyBrand={companyBrand} />;
 }

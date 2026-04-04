@@ -18,21 +18,51 @@ const IDB_NAME = "naosheen-pwa-store";
 const IDB_STORE = "settings";
 
 const defaults: CompanySettings = {
-  name: "নওশীন ব্রডব্যান্ড ইন্টারনেট",
+  name: "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট",
   address: "",
   email: "",
   whatsapp: "",
   logo: null,
-  directorName: "মুহাম্মদ মনিরুজ্জামান",
+  directorName: "আবুল কাশেম",
   technicianName: "মুহাম্মদ উজ্জল মিয়া",
-  companyBrand: "Delta Software and Communication Limited",
-  resellerName: "নওশীন ব্রডব্যান্ড ইন্টারনেট",
+  companyBrand: "স্বাধীন ওয়াইফাই",
+  resellerName: "বালিগাঁও ব্রডব্যান্ড ইন্টারনেট",
 };
 
 function loadSettings(): CompanySettings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const merged = { ...defaults, ...parsed };
+      // Auto-migrate old default values to new defaults
+      let migrated = false;
+      if (merged.directorName === "মুহাম্মদ মনিরুজ্জামান") {
+        merged.directorName = defaults.directorName;
+        migrated = true;
+      }
+      if (merged.resellerName === "নওশীন ব্রডব্যান্ড ইন্টারনেট") {
+        merged.resellerName = defaults.resellerName;
+        migrated = true;
+      }
+      if (merged.name === "নওশীন ব্রডব্যান্ড ইন্টারনেট") {
+        merged.name = defaults.name;
+        migrated = true;
+      }
+      if (
+        merged.companyBrand === "Delta Software and Communication Limited" ||
+        merged.companyBrand === "Delta Software & Communication Limited"
+      ) {
+        merged.companyBrand = defaults.companyBrand;
+        migrated = true;
+      }
+      if (migrated) {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(merged));
+        } catch (_) {}
+      }
+      return merged;
+    }
   } catch (_) {}
   return defaults;
 }

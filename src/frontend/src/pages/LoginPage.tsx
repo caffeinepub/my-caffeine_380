@@ -71,7 +71,7 @@ export default function LoginPage({
             <Wifi className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white text-center">
-            নওশীন ব্রডব্যান্ড
+            বালিগাঁও ব্রডব্যান্ড
           </h1>
           <p className="text-sm mt-1" style={{ color: "oklch(0.65 0.02 252)" }}>
             ISP ম্যানেজমেন্ট সিস্টেম

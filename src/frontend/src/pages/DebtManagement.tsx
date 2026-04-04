@@ -617,7 +617,7 @@ function CommissionDuesSection({ isAdmin }: { isAdmin: boolean }) {
     const record: CommissionDue = {
       id: editItem?.id ?? crypto.randomUUID(),
       serial: editItem?.serial ?? BigInt(items.length + 1),
-      commissionSource: "Delta Software and Communication Limited",
+      commissionSource: settings.companyBrand || "স্বাধীন ওয়াইফাই",
       dueMonth: form.dueMonth,
       totalCommission: total,
       paidCommission: paid,
@@ -853,7 +853,7 @@ function CommissionDuesSection({ isAdmin }: { isAdmin: boolean }) {
               <Label className="text-xs">কমিশন উৎস</Label>
               <Input
                 className="h-8 text-sm mt-1"
-                value="Delta Software and Communication Limited"
+                value={settings.companyBrand || "স্বাধীন ওয়াইফাই"}
                 disabled
               />
             </div>

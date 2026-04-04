@@ -386,7 +386,7 @@ export default function Settings({
                   onChange={(e) =>
                     setCompanyForm((p) => ({ ...p, name: e.target.value }))
                   }
-                  placeholder="নওশীন ব্রডব্যান্ড ইন্টারনেট"
+                  placeholder="বালিগাঁও ব্রডব্যান্ড ইন্টারনেট"
                 />
               </div>
               <div className="space-y-1.5">
@@ -479,7 +479,7 @@ export default function Settings({
                   if (e.target.value.trim())
                     setOrgInfoErrors((p) => ({ ...p, companyBrand: "" }));
                 }}
-                placeholder="Delta Software and Communication Limited"
+                placeholder="স্বাধীন ওয়াইফাই"
                 className={
                   orgInfoErrors.companyBrand ? "border-destructive" : ""
                 }
@@ -507,7 +507,7 @@ export default function Settings({
                   if (e.target.value.trim())
                     setOrgInfoErrors((p) => ({ ...p, resellerName: "" }));
                 }}
-                placeholder="নওশীন ব্রডব্যান্ড ইন্টারনেট"
+                placeholder="বালিগাঁও ব্রডব্যান্ড ইন্টারনেট"
                 className={
                   orgInfoErrors.resellerName ? "border-destructive" : ""
                 }
@@ -535,7 +535,7 @@ export default function Settings({
                   if (e.target.value.trim())
                     setOrgInfoErrors((p) => ({ ...p, directorName: "" }));
                 }}
-                placeholder="মুহাম্মদ মনিরুজ্জামান"
+                placeholder="আবুল কাশেম"
                 className={
                   orgInfoErrors.directorName ? "border-destructive" : ""
                 }
